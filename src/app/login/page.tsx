@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithRedirect, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
@@ -34,8 +34,10 @@ export default function LoginPage() {
     setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      router.push('/');
+      // Usando signInWithRedirect em vez de signInWithPopup
+      await signInWithRedirect(auth, provider);
+      // O redirecionamento acontecerá aqui, o código abaixo não será executado imediatamente
+      // A lógica de redirecionamento para a página principal será tratada pelo AuthGuard
     } catch (error: any) {
       console.error("Firebase Auth Error:", error);
       toast({
@@ -43,7 +45,6 @@ export default function LoginPage() {
         title: 'Uh oh! Algo deu errado.',
         description: error.message || 'Não foi possível entrar com o Google.',
       });
-    } finally {
       setLoading(false);
     }
   };
@@ -65,7 +66,7 @@ export default function LoginPage() {
                 disabled={loading}
                 variant="outline"
             >
-               {loading ? 'Entrando...' : <><GoogleIcon /> Entrar com Google</>}
+               {loading ? 'Redirecionando...' : <><GoogleIcon /> Entrar com Google</>}
             </Button>
         </CardContent>
       </Card>
