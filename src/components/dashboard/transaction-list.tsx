@@ -18,11 +18,18 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/utils';
 import type { Transaction } from '@/types';
-import { ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { ArrowUpCircle, ArrowDownCircle, ShoppingBasket } from 'lucide-react';
+import { categoriesConfig } from '@/lib/categories';
 
 interface TransactionListProps {
   transactions: Transaction[];
 }
+
+const CategoryIcon = ({ category, className }: { category: string; className?: string }) => {
+    const Icon = categoriesConfig[category]?.icon;
+    return Icon ? <Icon className={className} /> : null;
+};
+
 
 export default function TransactionList({ transactions }: TransactionListProps) {
   return (
@@ -56,25 +63,30 @@ export default function TransactionList({ transactions }: TransactionListProps) 
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{t.category}</Badge>
+                    <Badge variant="outline" className="flex items-center gap-1.5">
+                        <CategoryIcon category={t.category} className="h-3 w-3" />
+                        {t.category}
+                    </Badge>
                   </TableCell>
                   <TableCell>
-                    {new Date(t.date).toLocaleDateString('pt-BR')}
+                    {new Date(t.date).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'})}
                   </TableCell>
                   <TableCell
                     className={`text-right font-semibold ${
                       t.type === 'income' ? 'text-primary' : 'text-destructive'
                     }`}
                   >
-                    {formatCurrency(t.amount)}
+                    {t.type === 'expense' && '- '}{formatCurrency(t.amount)}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         ) : (
-          <div className="text-center py-10 text-muted-foreground">
-            Nenhuma transação encontrada.
+          <div className="flex flex-col text-center py-10 items-center justify-center text-muted-foreground">
+            <ShoppingBasket className="h-10 w-10 mb-4 text-primary" />
+            <p className="font-semibold">Nenhuma transação encontrada.</p>
+            <p className='text-sm'>Adicione um gasto ou ganho para começar.</p>
           </div>
         )}
       </CardContent>

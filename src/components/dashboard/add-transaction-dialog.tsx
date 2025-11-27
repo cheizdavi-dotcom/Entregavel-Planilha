@@ -12,10 +12,8 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
@@ -36,7 +34,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Plus } from 'lucide-react';
+import { Plus, Briefcase, GraduationCap, Utensils, Home, Car, PartyPopper, HeartPulse, Landmark, PiggyBank } from 'lucide-react';
+import { categoriesConfig, Category } from '@/lib/categories';
 
 const formSchema = z.object({
   type: z.enum(['income', 'expense'], { required_error: 'Selecione o tipo.' }),
@@ -45,11 +44,10 @@ const formSchema = z.object({
   category: z.string({ required_error: 'Selecione uma categoria.' }),
 });
 
-const categories = {
-    income: ['Salário', 'Freelance', 'Investimentos', 'Outros'],
-    expense: ['Alimentação', 'Moradia', 'Transporte', 'Lazer', 'Saúde', 'Educação', 'Outros'],
+const CategoryIcon = ({ category, className }: { category: string; className?: string }) => {
+    const Icon = categoriesConfig[category]?.icon;
+    return Icon ? <Icon className={className} /> : null;
 };
-
 
 export function AddTransactionDialog() {
   const [open, setOpen] = useState(false);
@@ -61,10 +59,21 @@ export function AddTransactionDialog() {
     defaultValues: {
       type: 'expense',
       description: '',
+      amount: 0,
     },
   });
 
-  const type = form.watch('type');
+  const transactionType = form.watch('type');
+
+  const availableCategories = Object.values(categoriesConfig).filter(cat => cat.type === transactionType);
+
+  // Reset category when type changes
+  React.useEffect(() => {
+    form.reset({
+        ...form.getValues(),
+        category: '',
+    });
+  }, [transactionType, form]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user) return;
@@ -89,7 +98,7 @@ export function AddTransactionDialog() {
             title: 'Sucesso!',
             description: 'Sua transação foi adicionada.',
         });
-        form.reset();
+        form.reset({ type: 'expense', description: '', amount: 0, category: '' });
         setOpen(false);
     }
   }
@@ -101,12 +110,9 @@ export function AddTransactionDialog() {
           <Plus className="h-8 w-8" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] glass-dark">
+      <DialogContent className="sm:max-w-[425px] glass-dark border-border/20">
         <DialogHeader>
           <DialogTitle>Nova Transação</DialogTitle>
-          <DialogDescription>
-            Adicione uma nova receita ou despesa.
-          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -148,7 +154,10 @@ export function AddTransactionDialog() {
                 <FormItem>
                   <FormLabel>Valor</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="R$ 0,00" {...field} />
+                    <div className="relative">
+                        <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground">R$</span>
+                        <Input type="number" step="0.01" placeholder="0,00" {...field} className="pl-10" />
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -175,15 +184,20 @@ export function AddTransactionDialog() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Categoria</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione uma categoria" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {categories[type].map(cat => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      {availableCategories.map(cat => (
+                        <SelectItem key={cat.label} value={cat.label}>
+                            <div className="flex items-center gap-2">
+                                <CategoryIcon category={cat.label} className="h-4 w-4" />
+                                {cat.label}
+                            </div>
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -191,11 +205,11 @@ export function AddTransactionDialog() {
                 </FormItem>
               )}
             />
-            <DialogFooter>
+            <DialogFooter className='pt-4'>
                 <DialogClose asChild>
-                    <Button type="button" variant="secondary">Cancelar</Button>
+                    <Button type="button" variant="ghost">Cancelar</Button>
                 </DialogClose>
-                <Button type="submit">Adicionar</Button>
+                <Button type="submit">Salvar Transação</Button>
             </DialogFooter>
           </form>
         </Form>

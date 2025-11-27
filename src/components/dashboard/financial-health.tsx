@@ -1,0 +1,106 @@
+'use client';
+
+import * as React from 'react';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import type { Transaction } from '@/types';
+import { categoriesConfig } from '@/lib/categories';
+import { formatCurrency } from '@/lib/utils';
+import { Target } from 'lucide-react';
+
+interface FinancialHealthProps {
+  transactions: Transaction[];
+  totalIncome: number;
+}
+
+const ruleConfig = {
+    needs: { label: 'Essencial', target: 50, color: 'bg-blue-500' },
+    wants: { label: 'Estilo de Vida', target: 30, color: 'bg-purple-500' },
+    savings: { label: 'Investimentos', target: 20, color: 'bg-green-500' },
+};
+
+export default function FinancialHealth({ transactions, totalIncome }: FinancialHealthProps) {
+  const { needs, wants, savings } = React.useMemo(() => {
+    const expenses = transactions.filter((t) => t.type === 'expense');
+    return expenses.reduce(
+      (acc, t) => {
+        const categoryType = categoriesConfig[t.category]?.type503020 || 'wants';
+        acc[categoryType] += t.amount;
+        return acc;
+      },
+      { needs: 0, wants: 0, savings: 0 }
+    );
+  }, [transactions]);
+  
+  const getPercentage = (value: number) => {
+    return totalIncome > 0 ? (value / totalIncome) * 100 : 0;
+  };
+
+  const needsPercentage = getPercentage(needs);
+  const wantsPercentage = getPercentage(wants);
+  const savingsPercentage = getPercentage(savings);
+
+  const ProgressBar = ({ label, percentage, target, color, value }: { label: string, percentage: number, target: number, color: string, value: number }) => {
+    const isOver = percentage > target;
+    return (
+        <div className='space-y-2'>
+            <div className='flex justify-between items-baseline'>
+                <p className='text-sm font-medium'>{label}</p>
+                <p className={`text-sm font-semibold ${isOver ? 'text-red-500' : 'text-foreground'}`}>
+                    {formatCurrency(value)}
+                    <span className='ml-2 text-xs text-muted-foreground'>({percentage.toFixed(0)}% de {target}%)</span>
+                </p>
+            </div>
+            <Progress value={percentage} indicatorClassName={isOver ? 'bg-red-500' : color} />
+        </div>
+    );
+  }
+
+  return (
+    <Card className="glass-dark h-full">
+      <CardHeader>
+        <CardTitle>Saúde Financeira</CardTitle>
+        <CardDescription>Regra 50/30/20 baseada na sua renda</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {totalIncome > 0 ? (
+          <div className="space-y-6">
+            <ProgressBar 
+                label={ruleConfig.needs.label}
+                percentage={needsPercentage}
+                target={ruleConfig.needs.target}
+                color={ruleConfig.needs.color}
+                value={needs}
+            />
+             <ProgressBar 
+                label={ruleConfig.wants.label}
+                percentage={wantsPercentage}
+                target={ruleConfig.wants.target}
+                color={ruleConfig.wants.color}
+                value={wants}
+            />
+             <ProgressBar 
+                label={ruleConfig.savings.label}
+                percentage={savingsPercentage}
+                target={ruleConfig.savings.target}
+                color={ruleConfig.savings.color}
+                value={savings}
+            />
+          </div>
+        ) : (
+          <div className="flex h-[250px] flex-col items-center justify-center text-center text-muted-foreground p-4">
+            <Target className="h-10 w-10 mb-4 text-primary" />
+            <p className="font-semibold">Adicione uma receita!</p>
+            <p className="text-sm">Registre seu salário ou ganhos para analisar sua saúde financeira.</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

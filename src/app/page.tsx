@@ -14,6 +14,7 @@ import MonthlyOverviewChart from '@/components/dashboard/monthly-overview-chart'
 import TransactionList from '@/components/dashboard/transaction-list';
 import { AddTransactionDialog } from '@/components/dashboard/add-transaction-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import FinancialHealth from '@/components/dashboard/financial-health';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -61,15 +62,18 @@ export default function DashboardPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <SummaryCards balance={balance} income={income} expenses={expenses} />
       </div>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <MonthlyOverviewChart transactions={transactions} />
+        <FinancialHealth transactions={transactions} totalIncome={income} />
+      </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         <div className="lg:col-span-4">
-          <MonthlyOverviewChart transactions={transactions} />
+           <TransactionList transactions={transactions.slice(0, 5)} />
         </div>
         <div className="lg:col-span-3">
           <ExpenseChart transactions={transactions} />
         </div>
       </div>
-      <TransactionList transactions={transactions.slice(0, 5)} />
     </div>
   );
 
@@ -84,11 +88,14 @@ export default function DashboardPage() {
         <Skeleton className="h-[126px] rounded-lg" />
         <Skeleton className="h-[126px] rounded-lg" />
       </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-        <Skeleton className="h-[350px] lg:col-span-4 rounded-lg" />
-        <Skeleton className="h-[350px] lg:col-span-3 rounded-lg" />
+       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Skeleton className="h-[350px] rounded-lg" />
+        <Skeleton className="h-[350px] rounded-lg" />
       </div>
-      <Skeleton className="h-[300px] rounded-lg" />
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
+        <Skeleton className="h-[300px] lg:col-span-4 rounded-lg" />
+        <Skeleton className="h-[300px] lg:col-span-3 rounded-lg" />
+      </div>
     </div>
   );
 
