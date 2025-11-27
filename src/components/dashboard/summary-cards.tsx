@@ -59,7 +59,7 @@ const SummaryCard = ({ title, value, icon, variant = 'default', loading, compari
                 </div>
             </CardHeader>
             <CardContent>
-                <div className={`text-2xl font-bold ${valueColor}`}>{formatCurrency(value)}</div>
+                <div className={`text-2xl md:text-3xl font-bold ${valueColor}`}>{formatCurrency(value)}</div>
                  <p className="text-xs text-muted-foreground flex items-center gap-1">
                     {comparison !== undefined && (
                       isPositive ? <ArrowUp className="h-3 w-3 text-primary" /> : <ArrowDown className="h-3 w-3 text-destructive" />
@@ -82,7 +82,7 @@ export default function SummaryCards({ balance, income, expenses, loading, prevM
         comparison={prevMonthSavings}
         loading={loading}
       />
-       <SummaryCard 
+       <SummaryCard
         title="Total Receitas"
         value={income}
         icon={<TrendingUp className="h-4 w-4" />}

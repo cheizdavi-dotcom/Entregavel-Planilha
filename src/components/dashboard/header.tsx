@@ -58,7 +58,7 @@ export default function Header({ currentDate, setCurrentDate }: HeaderProps) {
   const displayName = user?.displayName || user?.email?.split('@')[0] || 'Usuário';
 
   return (
-    <header className="flex flex-col md:flex-row items-center justify-between gap-4">
+    <header className="relative flex flex-col md:flex-row items-center justify-between gap-4 md:gap-0">
        <div className="flex items-center gap-4 self-start md:self-center">
         <div className="hidden md:block"><Logo /></div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
@@ -71,14 +71,14 @@ export default function Header({ currentDate, setCurrentDate }: HeaderProps) {
       </div>
 
       <div className='flex items-center gap-4 self-end md:self-center'>
-        <div className="hidden md:flex items-center gap-4">
+        <div className="flex items-center gap-4">
             <Avatar>
                 {user?.photoURL && <AvatarImage src={user.photoURL} alt={displayName} />}
                 <AvatarFallback>{getUserInitials(user?.displayName)}</AvatarFallback>
             </Avatar>
             <Button variant="ghost" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
-                Sair
+                <span className="hidden md:inline">Sair</span>
             </Button>
         </div>
       </div>
