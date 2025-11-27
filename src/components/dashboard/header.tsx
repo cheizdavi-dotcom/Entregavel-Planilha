@@ -31,7 +31,7 @@ const MonthNavigator = ({ currentDate, setCurrentDate }: HeaderProps) => {
     const formattedDate = format(currentDate, "MMMM 'de' yyyy", { locale: ptBR });
 
     return (
-        <div className="flex items-center gap-2 rounded-lg p-1">
+        <div className="flex items-center gap-2 rounded-lg p-1 glass-dark">
             <Button variant="ghost" size="icon" onClick={handlePrevMonth} aria-label="Mês anterior">
                 <ChevronLeft className="h-6 w-6" />
             </Button>
@@ -59,15 +59,18 @@ export default function Header({ currentDate, setCurrentDate }: HeaderProps) {
 
   return (
     <header className="flex flex-col md:flex-row items-center justify-between gap-4">
-       <div className="flex items-center gap-4 self-start">
+       <div className="flex items-center gap-4 self-start md:self-center">
         <div className="hidden md:block"><Logo /></div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
           Olá, {displayName}!
         </h1>
       </div>
-
-      <div className='flex items-center gap-4'>
+      
+      <div className="absolute left-1/2 top-16 md:top-auto md:relative md:left-auto transform -translate-x-1/2 md:transform-none">
         <MonthNavigator currentDate={currentDate} setCurrentDate={setCurrentDate} />
+      </div>
+
+      <div className='flex items-center gap-4 self-end md:self-center'>
         <div className="hidden md:flex items-center gap-4">
             <Avatar>
                 {user?.photoURL && <AvatarImage src={user.photoURL} alt={displayName} />}

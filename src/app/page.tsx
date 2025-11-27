@@ -20,7 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 const DashboardSkeleton = () => (
     <div className="flex flex-col min-h-screen bg-background">
         <div className="flex-1 space-y-8 p-4 md:p-8 pt-6">
-            <div className="flex items-center justify-between space-y-2">
+            <div className="flex items-center justify-between space-y-2 pt-12 md:pt-0">
                 <Skeleton className="h-8 w-48" />
                 <div className="flex items-center gap-4">
                   <Skeleton className="h-10 w-10 rounded-full" />
@@ -141,7 +141,7 @@ export default function DashboardPage() {
   }, [prevMonthTransactions]);
 
   const MainContent = () => (
-    <div className="flex flex-col gap-6 p-4 md:p-8">
+    <div className="flex flex-col gap-6 p-4 md:p-8 pt-20 md:pt-8">
       <Header currentDate={currentDate} setCurrentDate={setCurrentDate} />
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
