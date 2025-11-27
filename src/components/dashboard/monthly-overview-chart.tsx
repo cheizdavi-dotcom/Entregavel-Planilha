@@ -115,15 +115,15 @@ export default function MonthlyOverviewChart({ transactions, loading }: MonthlyO
             >
                 <defs>
                     <linearGradient id="fillIncome" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--color-income)" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="var(--color-income)" stopOpacity={0.1} />
+                        <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0.0} />
                     </linearGradient>
                     <linearGradient id="fillExpense" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--color-expense)" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="var(--color-expense)" stopOpacity={0.1} />
+                        <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0.0} />
                     </linearGradient>
                 </defs>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(var(--border) / 0.2)" />
+                <CartesianGrid vertical={false} strokeDasharray="5 5" stroke="hsl(var(--border) / 0.2)" />
                 <XAxis
                     dataKey="date"
                     tickLine={false}
@@ -144,8 +144,8 @@ export default function MonthlyOverviewChart({ transactions, loading }: MonthlyO
                 cursor={true}
                 content={<ChartTooltipContent indicator="dot" formatter={(value) => formatCurrency(Number(value))}/>}
               />
-              <Area dataKey="income" type="monotone" fill="url(#fillIncome)" stroke="var(--color-income)" stackId="1" strokeWidth={2} />
-              <Area dataKey="expense" type="monotone" fill="url(#fillExpense)" stroke="var(--color-expense)" stackId="1" strokeWidth={2} />
+              <Area dataKey="income" type="monotone" fill="url(#fillIncome)" stroke="hsl(var(--chart-1))" strokeWidth={3} />
+              <Area dataKey="expense" type="monotone" fill="url(#fillExpense)" stroke="hsl(var(--chart-2))" strokeWidth={3} />
             </AreaChart>
           </ChartContainer>
         )}
