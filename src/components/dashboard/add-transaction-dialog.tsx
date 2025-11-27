@@ -12,6 +12,7 @@ import { addTransactionAction } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
+  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
