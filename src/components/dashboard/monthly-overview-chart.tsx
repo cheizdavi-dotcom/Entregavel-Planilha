@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
 import {
   Card,
   CardContent,
@@ -13,11 +13,12 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import type { Transaction } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
-
+import { getDaysInMonth, format } from 'date-fns';
 
 interface MonthlyOverviewChartProps {
   transactions: Transaction[];
   loading: boolean;
+  currentDate: Date;
 }
 
 const chartConfig = {
@@ -39,47 +40,38 @@ const ChartSkeleton = () => (
 
 const EmptyState = () => (
     <div className="flex h-[280px] w-full flex-col items-center justify-center text-center text-muted-foreground p-4">
-        <p className="font-semibold">Adicione sua primeira transação</p>
-        <p className="text-sm">E veja a evolução do seu fluxo de caixa neste mês.</p>
+        <p className="font-semibold">Nenhuma transação neste mês</p>
+        <p className="text-sm">Adicione uma transação para ver a evolução do seu fluxo de caixa.</p>
     </div>
 );
 
-export default function MonthlyOverviewChart({ transactions, loading }: MonthlyOverviewChartProps) {
+export default function MonthlyOverviewChart({ transactions, loading, currentDate }: MonthlyOverviewChartProps) {
   const data = React.useMemo(() => {
-    if (transactions.length === 0) return [];
-    
-    const dailyData: { [key: string]: { date: string; income: number; expense: number } } = {};
-    const today = new Date();
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const daysInMonth = getDaysInMonth(currentDate);
+    const dailyData = Array.from({ length: daysInMonth }, (_, i) => {
+        const day = i + 1;
+        return {
+            date: format(new Date(currentDate.getFullYear(), currentDate.getMonth(), day), 'dd/MM'),
+            income: 0,
+            expense: 0,
+        };
+    });
 
     transactions.forEach((t) => {
        const transactionDate = new Date(t.date);
-       if (transactionDate < firstDayOfMonth) return; 
+       const dayOfMonth = transactionDate.getDate() - 1; 
 
-        const day = transactionDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-        if (!dailyData[day]) {
-            dailyData[day] = { date: day, income: 0, expense: 0 };
-        }
-        if (t.type === 'income') {
-            dailyData[day].income += t.amount;
-        } else {
-            dailyData[day].expense += t.amount;
-        }
+       if(dayOfMonth >= 0 && dayOfMonth < daysInMonth) {
+            if (t.type === 'income') {
+                dailyData[dayOfMonth].income += t.amount;
+            } else {
+                dailyData[dayOfMonth].expense += t.amount;
+            }
+       }
     });
 
-    const sortedData = Object.values(dailyData).sort((a,b) => {
-        const dateA = a.date.split('/').reverse().join('');
-        const dateB = b.date.split('/').reverse().join('');
-        return dateA.localeCompare(dateB);
-    });
-
-    // If we have only one data point, we duplicate it to form a line.
-    if (sortedData.length === 1) {
-      return [sortedData[0], { ...sortedData[0], date: ' ' }];
-    }
-
-    return sortedData;
-  }, [transactions]);
+    return dailyData;
+  }, [transactions, currentDate]);
 
   if (loading) {
       return (
@@ -95,7 +87,7 @@ export default function MonthlyOverviewChart({ transactions, loading }: MonthlyO
       )
   }
 
-  const hasData = data.length > 0;
+  const hasData = transactions.length > 0;
 
   return (
     <Card className="glass-dark h-full flex flex-col">
@@ -129,7 +121,13 @@ export default function MonthlyOverviewChart({ transactions, loading }: MonthlyO
                     tickLine={false}
                     axisLine={false}
                     tickMargin={8}
-                    tickFormatter={(value) => value.slice(0, 5)}
+                    tickFormatter={(value, index) => {
+                        const day = parseInt(value.substring(0, 2));
+                        if (day % 5 === 0 || day === 1 || day === data.length) {
+                            return value.substring(0, 2);
+                        }
+                        return '';
+                    }}
                     style={{ fontSize: '12px', fill: 'hsl(var(--muted-foreground))' }}
                 />
                 <YAxis
@@ -142,7 +140,11 @@ export default function MonthlyOverviewChart({ transactions, loading }: MonthlyO
                 />
               <Tooltip
                 cursor={true}
-                content={<ChartTooltipContent indicator="dot" formatter={(value) => formatCurrency(Number(value))}/>}
+                content={<ChartTooltipContent indicator="dot" formatter={(value, name, props) => {
+                    if (name === 'income') return [formatCurrency(Number(value)), "Receita"];
+                    if (name === 'expense') return [formatCurrency(Number(value)), "Despesa"];
+                    return [value, name];
+                }}/>}
               />
               <Area dataKey="income" type="monotone" fill="url(#fillIncome)" stroke="hsl(var(--chart-1))" strokeWidth={3} />
               <Area dataKey="expense" type="monotone" fill="url(#fillExpense)" stroke="hsl(var(--chart-2))" strokeWidth={3} />

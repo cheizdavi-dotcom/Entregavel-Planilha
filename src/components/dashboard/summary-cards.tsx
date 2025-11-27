@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
-import { Wallet, TrendingUp, TrendingDown } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 
@@ -10,10 +10,11 @@ interface SummaryCardsProps {
   balance: number;
   income: number;
   expenses: number;
+  prevMonthSavings: number;
   loading: boolean;
 }
 
-const SummaryCard = ({ title, value, icon, variant = 'default', loading }: { title: string, value: number, icon: React.ReactNode, variant?: 'default' | 'primary' | 'destructive', loading: boolean }) => {
+const SummaryCard = ({ title, value, icon, variant = 'default', loading, comparison }: { title: string, value: number, icon: React.ReactNode, variant?: 'default' | 'primary' | 'destructive', loading: boolean, comparison?: number }) => {
     if (loading) {
         return (
             <Card className="glass-dark">
@@ -40,6 +41,13 @@ const SummaryCard = ({ title, value, icon, variant = 'default', loading }: { tit
         primary: 'text-primary',
         destructive: 'text-destructive',
     }[variant];
+    
+    const savings = value;
+    const difference = comparison !== undefined ? savings - comparison : 0;
+    const isPositive = difference >= 0;
+    const comparisonText = comparison !== undefined ? 
+        `Você economizou ${formatCurrency(Math.abs(difference))} ${isPositive ? 'a mais' : 'a menos'} que no mês passado` : 
+        `${title} no período`;
 
 
     return (
@@ -52,20 +60,26 @@ const SummaryCard = ({ title, value, icon, variant = 'default', loading }: { tit
             </CardHeader>
             <CardContent>
                 <div className={`text-2xl font-bold ${valueColor}`}>{formatCurrency(value)}</div>
-                 <p className="text-xs text-muted-foreground">{title} no período</p>
+                 <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    {comparison !== undefined && (
+                      isPositive ? <ArrowUp className="h-3 w-3 text-primary" /> : <ArrowDown className="h-3 w-3 text-destructive" />
+                    )}
+                    {comparisonText}
+                </p>
             </CardContent>
         </Card>
     );
 };
 
 
-export default function SummaryCards({ balance, income, expenses, loading }: SummaryCardsProps) {
+export default function SummaryCards({ balance, income, expenses, loading, prevMonthSavings }: SummaryCardsProps) {
   return (
     <>
       <SummaryCard 
-        title="Saldo Atual"
+        title="Saldo do Mês"
         value={balance}
         icon={<Wallet className="h-4 w-4" />}
+        comparison={prevMonthSavings}
         loading={loading}
       />
        <SummaryCard 

@@ -1,10 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import type { Transaction } from '@/types';
+import { startOfMonth, endOfMonth, subMonths } from 'date-fns';
 
 import AuthGuard from '@/components/auth-guard';
 import Header from '@/components/dashboard/header';
@@ -47,7 +48,9 @@ const DashboardSkeleton = () => (
 export default function DashboardPage() {
   const { user } = useAuth();
   const [transactions, setTransactions] = React.useState<Transaction[]>([]);
+  const [prevMonthTransactions, setPrevMonthTransactions] = React.useState<Transaction[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [currentDate, setCurrentDate] = React.useState(new Date());
 
   React.useEffect(() => {
     if (user?.uid) {
@@ -57,8 +60,15 @@ export default function DashboardPage() {
         return;
       }
       
+      setLoading(true);
+
+      const firstDay = startOfMonth(currentDate);
+      const lastDay = endOfMonth(currentDate);
+      
       const q = query(
         collection(db, 'users', user.uid, 'transactions'),
+        where('date', '>=', firstDay.toISOString()),
+        where('date', '<=', lastDay.toISOString()),
         orderBy('date', 'desc')
       );
       
@@ -68,17 +78,39 @@ export default function DashboardPage() {
           userTransactions.push({ id: doc.id, ...doc.data() } as Transaction);
         });
         setTransactions(userTransactions);
-        if (loading) setLoading(false);
+        setLoading(false);
       }, (error) => {
         console.error("Error fetching transactions: ", error);
         setLoading(false);
       });
+
+      // Fetch previous month's transactions for comparison
+      const prevMonth = subMonths(currentDate, 1);
+      const prevMonthFirstDay = startOfMonth(prevMonth);
+      const prevMonthLastDay = endOfMonth(prevMonth);
+
+      const pq = query(
+        collection(db, 'users', user.uid, 'transactions'),
+        where('date', '>=', prevMonthFirstDay.toISOString()),
+        where('date', '<=', prevMonthLastDay.toISOString())
+      );
+
+      const unsubscribePrev = onSnapshot(pq, (querySnapshot) => {
+        const prevTransactions: Transaction[] = [];
+        querySnapshot.forEach((doc) => {
+          prevTransactions.push(doc.data() as Transaction);
+        });
+        setPrevMonthTransactions(prevTransactions);
+      });
       
-      return () => unsubscribe();
+      return () => {
+        unsubscribe();
+        unsubscribePrev();
+      };
     } else if (!user) {
         setLoading(false);
     }
-  }, [user, loading]);
+  }, [user, currentDate]);
 
   const { balance, income, expenses } = React.useMemo(() => {
     return transactions.reduce(
@@ -96,18 +128,29 @@ export default function DashboardPage() {
     );
   }, [transactions]);
 
+  const prevMonthSavings = React.useMemo(() => {
+    const { income, expenses } = prevMonthTransactions.reduce(
+      (acc, t) => {
+        const amount = Number(t.amount) || 0;
+        if (t.type === 'income') acc.income += amount;
+        else acc.expenses += amount;
+        return acc;
+      }, { income: 0, expenses: 0 }
+    );
+    return income - expenses;
+  }, [prevMonthTransactions]);
 
   const MainContent = () => (
     <div className="flex flex-col gap-6 p-4 md:p-8">
-      <Header />
+      <Header currentDate={currentDate} setCurrentDate={setCurrentDate} />
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <SummaryCards balance={balance} income={income} expenses={expenses} loading={loading}/>
+        <SummaryCards balance={balance} income={income} expenses={expenses} prevMonthSavings={prevMonthSavings} loading={loading}/>
       </div>
       
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-7">
         <div className="lg:col-span-4">
-            <MonthlyOverviewChart transactions={transactions} loading={loading} />
+            <MonthlyOverviewChart transactions={transactions} loading={loading} currentDate={currentDate} />
         </div>
         
         <div className="flex flex-col gap-6 lg:col-span-3">
