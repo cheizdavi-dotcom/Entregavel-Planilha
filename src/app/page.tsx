@@ -13,7 +13,6 @@ import ExpenseChart from '@/components/dashboard/expense-chart';
 import MonthlyOverviewChart from '@/components/dashboard/monthly-overview-chart';
 import TransactionList from '@/components/dashboard/transaction-list';
 import { AddTransactionDialog } from '@/components/dashboard/add-transaction-dialog';
-import { Skeleton } from '@/components/ui/skeleton';
 import FinancialHealth from '@/components/dashboard/financial-health';
 
 export default function DashboardPage() {
@@ -59,7 +58,6 @@ export default function DashboardPage() {
     );
   }, [transactions]);
 
-  const hasTransactions = transactions.length > 0;
 
   const MainContent = () => (
     <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
