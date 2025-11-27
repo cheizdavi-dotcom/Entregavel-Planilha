@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -41,7 +40,7 @@ import { categoriesConfig } from '@/lib/categories';
 
 const formSchema = z.object({
   type: z.enum(['income', 'expense'], { required_error: 'Selecione o tipo.' }),
-  amount: z.coerce.number().positive({ message: 'O valor deve ser positivo.' }),
+  amount: z.string().refine(val => !isNaN(parseFloat(val.replace(',', '.'))), { message: 'Valor inválido.'}),
   description: z.string().min(2, { message: 'Descrição muito curta.' }).max(50),
   category: z.string({ required_error: 'Selecione uma categoria.' }),
 });
@@ -52,7 +51,8 @@ const CategoryIcon = ({ category, className }: { category: string; className?: s
 };
 
 export function AddTransactionDialog() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -61,7 +61,7 @@ export function AddTransactionDialog() {
     defaultValues: {
       type: 'expense',
       description: '',
-      amount: 0,
+      amount: '0',
     },
   });
 
@@ -69,7 +69,6 @@ export function AddTransactionDialog() {
 
   const availableCategories = Object.values(categoriesConfig).filter(cat => cat.type === transactionType);
 
-  // Reset category when type changes
   React.useEffect(() => {
     form.reset({
         ...form.getValues(),
@@ -78,30 +77,56 @@ export function AddTransactionDialog() {
   }, [transactionType, form]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user) return;
-
-    const formData = new FormData();
-    formData.append('userId', user.uid);
-    formData.append('type', values.type);
-    formData.append('amount', values.amount.toString());
-    formData.append('description', values.description);
-    formData.append('category', values.category);
-
-    const result = await addTransactionAction(formData);
-
-    if (result?.errors) {
+    if (!user) {
         toast({
             variant: 'destructive',
-            title: 'Erro ao adicionar transação',
-            description: 'Por favor, verifique os campos e tente novamente.',
+            title: 'Usuário não autenticado',
+            description: 'Por favor, faça login para adicionar uma transação.',
         });
-    } else {
+        return;
+    }
+    
+    setIsSubmitting(true);
+
+    try {
+        const amountAsNumber = parseFloat(values.amount.replace(',', '.'));
+        if (isNaN(amountAsNumber) || amountAsNumber <= 0) {
+            form.setError('amount', { message: 'O valor deve ser positivo.' });
+            setIsSubmitting(false);
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('userId', user.uid);
+        formData.append('type', values.type);
+        formData.append('amount', amountAsNumber.toString());
+        formData.append('description', values.description);
+        formData.append('category', values.category);
+
+        const result = await addTransactionAction(formData);
+
+        if (result?.errors) {
+            toast({
+                variant: 'destructive',
+                title: 'Erro ao adicionar transação',
+                description: result.errors._server?.[0] || 'Por favor, verifique os campos e tente novamente.',
+            });
+        } else {
+            toast({
+                title: 'Sucesso!',
+                description: 'Sua transação foi adicionada.',
+            });
+            form.reset({ type: 'expense', description: '', amount: '0', category: '' });
+            setOpen(false);
+        }
+    } catch (error: any) {
         toast({
-            title: 'Sucesso!',
-            description: 'Sua transação foi adicionada.',
+            variant: 'destructive',
+            title: 'Uh oh! Algo deu errado.',
+            description: error.message || 'Ocorreu um erro inesperado ao salvar.',
         });
-        form.reset({ type: 'expense', description: '', amount: 0, category: '' });
-        setOpen(false);
+    } finally {
+        setIsSubmitting(false);
     }
   }
 
@@ -129,6 +154,7 @@ export function AddTransactionDialog() {
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                       className="flex space-x-4"
+                      disabled={isSubmitting}
                     >
                       <FormItem className="flex items-center space-x-2 space-y-0">
                         <FormControl>
@@ -158,7 +184,7 @@ export function AddTransactionDialog() {
                   <FormControl>
                     <div className="relative">
                         <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground">R$</span>
-                        <Input type="number" step="0.01" placeholder="0,00" {...field} className="pl-10" />
+                        <Input type="text" placeholder="0,00" {...field} className="pl-10" disabled={isSubmitting}/>
                     </div>
                   </FormControl>
                   <FormMessage />
@@ -173,7 +199,7 @@ export function AddTransactionDialog() {
                 <FormItem>
                   <FormLabel>Descrição</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: Café da tarde" {...field} />
+                    <Input placeholder="Ex: Café da tarde" {...field} disabled={isSubmitting}/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -186,7 +212,7 @@ export function AddTransactionDialog() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Categoria</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={isSubmitting}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione uma categoria" />
@@ -209,9 +235,11 @@ export function AddTransactionDialog() {
             />
             <DialogFooter className='pt-4'>
                 <DialogClose asChild>
-                    <Button type="button" variant="ghost">Cancelar</Button>
+                    <Button type="button" variant="ghost" disabled={isSubmitting}>Cancelar</Button>
                 </DialogClose>
-                <Button type="submit">Salvar Transação</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? "Salvando..." : "Salvar Transação"}
+                </Button>
             </DialogFooter>
           </form>
         </Form>
