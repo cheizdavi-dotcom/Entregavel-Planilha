@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Target, Trophy } from 'lucide-react';
+import { Target, Trophy, Plus } from 'lucide-react';
 
 interface GoalsCardProps {
   loading: boolean;
@@ -85,15 +85,25 @@ const GoalItem = ({ goal, onClick }: { goal: Goal, onClick: () => void }) => {
     }
 
     return (
-        <div className="space-y-2 cursor-pointer rounded-lg p-2 -m-2 hover:bg-white/5 transition-colors" onClick={onClick}>
-            <div className="flex justify-between items-baseline">
-                <p className="font-semibold text-sm flex items-center gap-2">
-                    <span>{findIconForGoal(goal.name)}</span>
-                    {goal.name}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                    <span className="font-bold text-foreground">{formatCurrency(goal.currentValue)}</span> / {formatCurrency(goal.totalValue)}
-                </p>
+        <div className="space-y-2 rounded-lg p-2 -m-2">
+            <div className="flex justify-between items-center">
+                <div className='flex-1'>
+                    <p className="font-semibold text-sm flex items-center gap-2">
+                        <span>{findIconForGoal(goal.name)}</span>
+                        {goal.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                        <span className="font-bold text-foreground">{formatCurrency(goal.currentValue)}</span> / {formatCurrency(goal.totalValue)}
+                    </p>
+                </div>
+                 <Button 
+                    variant="outline" 
+                    size="icon"
+                    className="h-8 w-8 bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:text-primary"
+                    onClick={onClick}
+                >
+                    <Plus className="h-4 w-4" />
+                </Button>
             </div>
             <div className="flex items-center gap-3">
                 <Progress value={percentage} indicatorClassName="bg-gradient-to-r from-cyan-400 to-blue-500" className="h-2 flex-1" />
