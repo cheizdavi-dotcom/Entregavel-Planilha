@@ -10,9 +10,11 @@ import {
 import type { Transaction } from '@/types';
 import { categoriesConfig } from '@/lib/categories';
 import { PartyPopper } from 'lucide-react';
+import { Skeleton } from '../ui/skeleton';
 
 interface ExpenseChartProps {
   transactions: Transaction[];
+  loading: boolean;
 }
 
 const chartColors = [
@@ -23,7 +25,14 @@ const chartColors = [
   'hsl(var(--chart-5))',
 ];
 
-export default function ExpenseChart({ transactions }: ExpenseChartProps) {
+const ChartSkeleton = () => (
+    <div className="flex items-center justify-center h-[180px]">
+        <Skeleton className="h-[180px] w-[180px] rounded-full" />
+    </div>
+);
+
+
+export default function ExpenseChart({ transactions, loading }: ExpenseChartProps) {
   const expenseData = React.useMemo(() => {
     const expenses = transactions.filter((t) => t.type === 'expense');
     if (expenses.length === 0) return [];
@@ -57,17 +66,21 @@ export default function ExpenseChart({ transactions }: ExpenseChartProps) {
     return expenseData.reduce((sum, item) => sum + item.total, 0);
   }, [expenseData]);
 
+  const hasData = expenseData.length > 0;
+
   return (
     <Card className="glass-dark h-full flex flex-col">
       <CardHeader>
         <CardTitle>Gastos por Categoria</CardTitle>
-        <CardDescription>Sua distribuição de despesas no período</CardDescription>
+        <CardDescription>Distribuição de despesas</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 flex items-center justify-center">
-        {expenseData.length > 0 ? (
+        {loading || !hasData ? (
+          <ChartSkeleton />
+        ) : (
            <ChartContainer
             config={chartConfig}
-            className="mx-auto aspect-square h-[250px]"
+            className="mx-auto aspect-square h-[180px]"
           >
             <PieChart>
                <Tooltip 
@@ -84,11 +97,10 @@ export default function ExpenseChart({ transactions }: ExpenseChartProps) {
                 dataKey="total"
                 nameKey="category"
                 innerRadius={60}
-                outerRadius={90}
-                strokeWidth={5}
+                outerRadius={80}
+                strokeWidth={2}
                 paddingAngle={5}
                 cornerRadius={8}
-                cy={"50%"}
               >
                 {expenseData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -96,12 +108,6 @@ export default function ExpenseChart({ transactions }: ExpenseChartProps) {
               </Pie>
             </PieChart>
           </ChartContainer>
-        ) : (
-          <div className="flex h-[250px] flex-col items-center justify-center text-center text-muted-foreground p-4">
-            <PartyPopper className="h-10 w-10 mb-4 text-primary" />
-            <p className="font-semibold">Sem despesas ainda!</p>
-            <p className="text-sm">Adicione uma transação para ver seu resumo de gastos aqui.</p>
-          </div>
         )}
       </CardContent>
     </Card>

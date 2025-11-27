@@ -38,6 +38,9 @@ export default function DashboardPage() {
         setLoading(false);
       });
       return () => unsubscribe();
+    } else {
+        // Se não houver usuário, pare de carregar e mostre o estado vazio (com skeletons)
+        setLoading(false);
     }
   }, [user]);
 
@@ -56,46 +59,32 @@ export default function DashboardPage() {
     );
   }, [transactions]);
 
-  const MainContent = () => (
-    <div className="flex-1 space-y-8 p-4 md:p-8 pt-6">
-      <Header />
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <SummaryCards balance={balance} income={income} expenses={expenses} />
-      </div>
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <MonthlyOverviewChart transactions={transactions} />
-        <FinancialHealth transactions={transactions} totalIncome={income} />
-      </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-        <div className="lg:col-span-4">
-           <TransactionList transactions={transactions.slice(0, 5)} />
-        </div>
-        <div className="lg:col-span-3">
-          <ExpenseChart transactions={transactions} />
-        </div>
-      </div>
-    </div>
-  );
+  const hasTransactions = transactions.length > 0;
 
-  const LoadingSkeleton = () => (
-    <div className="flex-1 space-y-8 p-4 md:p-8 pt-6">
-       <div className="flex items-center justify-between space-y-2">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-8 w-20" />
-      </div>
+  const MainContent = () => (
+    <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
+      <Header />
+      
+      {/* Cards de Resumo */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Skeleton className="h-[126px] rounded-lg" />
-        <Skeleton className="h-[126px] rounded-lg" />
-        <Skeleton className="h-[126px] rounded-lg" />
+        <SummaryCards balance={balance} income={income} expenses={expenses} loading={loading}/>
       </div>
-       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Skeleton className="h-[350px] rounded-lg" />
-        <Skeleton className="h-[350px] rounded-lg" />
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Coluna Esquerda */}
+        <div className="lg:col-span-2">
+            <MonthlyOverviewChart transactions={transactions} loading={loading} />
+        </div>
+        
+        {/* Coluna Direita */}
+        <div className="space-y-6">
+            <FinancialHealth transactions={transactions} totalIncome={income} loading={loading} />
+            <ExpenseChart transactions={transactions} loading={loading} />
+        </div>
       </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-        <Skeleton className="h-[300px] lg:col-span-4 rounded-lg" />
-        <Skeleton className="h-[300px] lg:col-span-3 rounded-lg" />
-      </div>
+      
+      {/* Tabela de transações */}
+      <TransactionList transactions={transactions} loading={loading} />
     </div>
   );
 
@@ -104,7 +93,7 @@ export default function DashboardPage() {
     <AuthGuard>
       <div className="relative flex min-h-screen w-full flex-col bg-background">
         <main className="flex-1">
-          {loading ? <LoadingSkeleton /> : <MainContent />}
+          <MainContent />
         </main>
         <AddTransactionDialog />
       </div>

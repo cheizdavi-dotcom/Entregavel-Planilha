@@ -12,11 +12,12 @@ import { Progress } from '@/components/ui/progress';
 import type { Transaction } from '@/types';
 import { categoriesConfig } from '@/lib/categories';
 import { formatCurrency } from '@/lib/utils';
-import { Target } from 'lucide-react';
+import { Skeleton } from '../ui/skeleton';
 
 interface FinancialHealthProps {
   transactions: Transaction[];
   totalIncome: number;
+  loading: boolean;
 }
 
 const ruleConfig = {
@@ -25,7 +26,33 @@ const ruleConfig = {
     savings: { label: 'Investimentos', target: 20, color: 'bg-green-500' },
 };
 
-export default function FinancialHealth({ transactions, totalIncome }: FinancialHealthProps) {
+const SkeletonLoader = () => (
+    <div className="space-y-6">
+        <div className='space-y-2'>
+            <div className='flex justify-between items-baseline'>
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-24" />
+            </div>
+            <Skeleton className="h-2 w-full" />
+        </div>
+        <div className='space-y-2'>
+            <div className='flex justify-between items-baseline'>
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-16" />
+            </div>
+            <Skeleton className="h-2 w-full" />
+        </div>
+        <div className='space-y-2'>
+            <div className='flex justify-between items-baseline'>
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-4 w-20" />
+            </div>
+            <Skeleton className="h-2 w-full" />
+        </div>
+    </div>
+);
+
+export default function FinancialHealth({ transactions, totalIncome, loading }: FinancialHealthProps) {
   const { needs, wants, savings } = React.useMemo(() => {
     const expenses = transactions.filter((t) => t.type === 'expense');
     return expenses.reduce(
@@ -57,19 +84,23 @@ export default function FinancialHealth({ transactions, totalIncome }: Financial
                     <span className='ml-2 text-xs text-muted-foreground'>({percentage.toFixed(0)}% de {target}%)</span>
                 </p>
             </div>
-            <Progress value={percentage} indicatorClassName={isOver ? 'bg-red-500' : color} />
+            <Progress value={percentage} indicatorClassName={isOver ? 'bg-red-500' : color} className="h-2"/>
         </div>
     );
   }
+
+  const hasIncome = totalIncome > 0;
 
   return (
     <Card className="glass-dark h-full">
       <CardHeader>
         <CardTitle>Saúde Financeira</CardTitle>
-        <CardDescription>Regra 50/30/20 baseada na sua renda</CardDescription>
+        <CardDescription>Regra 50/30/20 baseada na renda</CardDescription>
       </CardHeader>
       <CardContent>
-        {totalIncome > 0 ? (
+        {loading || !hasIncome ? (
+            <SkeletonLoader />
+        ) : (
           <div className="space-y-6">
             <ProgressBar 
                 label={ruleConfig.needs.label}
@@ -92,12 +123,6 @@ export default function FinancialHealth({ transactions, totalIncome }: Financial
                 color={ruleConfig.savings.color}
                 value={savings}
             />
-          </div>
-        ) : (
-          <div className="flex h-[250px] flex-col items-center justify-center text-center text-muted-foreground p-4">
-            <Target className="h-10 w-10 mb-4 text-primary" />
-            <p className="font-semibold">Adicione uma receita!</p>
-            <p className="text-sm">Registre seu salário ou ganhos para analisar sua saúde financeira.</p>
           </div>
         )}
       </CardContent>

@@ -18,11 +18,13 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/utils';
 import type { Transaction } from '@/types';
-import { ArrowUpCircle, ArrowDownCircle, ShoppingBasket } from 'lucide-react';
+import { ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { categoriesConfig } from '@/lib/categories';
+import { Skeleton } from '../ui/skeleton';
 
 interface TransactionListProps {
   transactions: Transaction[];
+  loading: boolean;
 }
 
 const CategoryIcon = ({ category, className }: { category: string; className?: string }) => {
@@ -30,8 +32,29 @@ const CategoryIcon = ({ category, className }: { category: string; className?: s
     return Icon ? <Icon className={className} /> : null;
 };
 
+const SkeletonRow = () => (
+    <TableRow>
+        <TableCell>
+            <div className="flex items-center gap-2">
+                <Skeleton className="h-5 w-5 rounded-full" />
+                <Skeleton className="h-5 w-24" />
+            </div>
+        </TableCell>
+        <TableCell>
+            <Skeleton className="h-5 w-20" />
+        </TableCell>
+        <TableCell>
+            <Skeleton className="h-5 w-16" />
+        </TableCell>
+        <TableCell className="text-right">
+            <Skeleton className="h-5 w-20 ml-auto" />
+        </TableCell>
+    </TableRow>
+);
 
-export default function TransactionList({ transactions }: TransactionListProps) {
+
+export default function TransactionList({ transactions, loading }: TransactionListProps) {
+  const hasTransactions = transactions.length > 0;
   return (
     <Card className="glass-dark">
       <CardHeader>
@@ -39,7 +62,6 @@ export default function TransactionList({ transactions }: TransactionListProps) 
         <CardDescription>Suas movimentações mais recentes.</CardDescription>
       </CardHeader>
       <CardContent>
-        {transactions.length > 0 ? (
           <Table>
             <TableHeader>
               <TableRow>
@@ -50,45 +72,48 @@ export default function TransactionList({ transactions }: TransactionListProps) 
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.map((t) => (
-                <TableRow key={t.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                        {t.type === 'income' ? (
-                            <ArrowUpCircle className="h-5 w-5 text-primary" />
-                        ) : (
-                            <ArrowDownCircle className="h-5 w-5 text-destructive" />
-                        )}
-                        <span className="font-medium">{t.description}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="flex items-center gap-1.5">
-                        <CategoryIcon category={t.category} className="h-3 w-3" />
-                        {t.category}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(t.date).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'})}
-                  </TableCell>
-                  <TableCell
-                    className={`text-right font-semibold ${
-                      t.type === 'income' ? 'text-primary' : 'text-destructive'
-                    }`}
-                  >
-                    {t.type === 'expense' && '- '}{formatCurrency(t.amount)}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {loading || !hasTransactions ? (
+                <>
+                    <SkeletonRow />
+                    <SkeletonRow />
+                    <SkeletonRow />
+                    <SkeletonRow />
+                    <SkeletonRow />
+                </>
+              ) : (
+                transactions.map((t) => (
+                    <TableRow key={t.id}>
+                    <TableCell>
+                        <div className="flex items-center gap-3">
+                            {t.type === 'income' ? (
+                                <ArrowUpCircle className="h-5 w-5 text-primary" />
+                            ) : (
+                                <ArrowDownCircle className="h-5 w-5 text-destructive" />
+                            )}
+                            <span className="font-medium">{t.description}</span>
+                        </div>
+                    </TableCell>
+                    <TableCell>
+                        <Badge variant="outline" className="flex w-fit items-center gap-1.5 py-1 px-2">
+                            <CategoryIcon category={t.category} className="h-3.5 w-3.5" />
+                            {t.category}
+                        </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                        {new Date(t.date).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'})}
+                    </TableCell>
+                    <TableCell
+                        className={`text-right font-semibold ${
+                        t.type === 'income' ? 'text-primary' : 'text-destructive'
+                        }`}
+                    >
+                        {t.type === 'expense' && '- '}{formatCurrency(t.amount)}
+                    </TableCell>
+                    </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
-        ) : (
-          <div className="flex flex-col text-center py-10 items-center justify-center text-muted-foreground">
-            <ShoppingBasket className="h-10 w-10 mb-4 text-primary" />
-            <p className="font-semibold">Nenhuma transação encontrada.</p>
-            <p className='text-sm'>Adicione um gasto ou ganho para começar.</p>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
