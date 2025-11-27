@@ -1,4 +1,6 @@
 import type {Config} from 'tailwindcss';
+const plugin = require('tailwindcss/plugin')
+
 
 export default {
   darkMode: ['class'],
@@ -10,8 +12,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
+        body: ['var(--font-body)', 'Inter', 'sans-serif'],
+        headline: ['var(--font-body)', 'Inter', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {
@@ -95,5 +97,22 @@ export default {
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [
+    require('tailwindcss-animate'),
+    plugin(function ({ theme, addUtilities }: { theme: any, addUtilities: any }) {
+      const newUtilities = {
+        '.glass': {
+          'backgroundColor': 'rgba(255, 255, 255, 0.05)',
+          'backdropFilter': 'blur(10px)',
+          'border': `1px solid ${theme('colors.border')}`,
+        },
+        '.glass-dark': {
+            'backgroundColor': 'hsla(var(--card) / 0.6)',
+            'backdropFilter': 'blur(12px)',
+            'border': `1px solid hsla(var(--border) / 0.2)`,
+        }
+      }
+      addUtilities(newUtilities, ['responsive', 'hover'])
+    })
+  ],
 } satisfies Config;
