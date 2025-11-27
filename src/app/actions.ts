@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { z } from 'zod';
 
@@ -103,4 +103,69 @@ export async function addGoalAction(formData: FormData) {
       errors: { _server: [e.message || 'Falha ao adicionar meta.'] },
     };
   }
+}
+
+const updateGoalSchema = z.object({
+    userId: z.string().min(1),
+    goalId: z.string().min(1),
+    amountToAdd: z.coerce.number().positive("O valor a adicionar deve ser positivo."),
+    currentValue: z.coerce.number().min(0),
+});
+
+export async function updateGoalAction(formData: FormData) {
+    if (!db) return { errors: { _server: ['Database not connected.'] } };
+
+    const values = {
+        userId: formData.get('userId'),
+        goalId: formData.get('goalId'),
+        amountToAdd: formData.get('amountToAdd'),
+        currentValue: formData.get('currentValue'),
+    };
+
+    const validatedFields = updateGoalSchema.safeParse(values);
+    if (!validatedFields.success) {
+        return { errors: validatedFields.error.flatten().fieldErrors };
+    }
+
+    const { userId, goalId, amountToAdd, currentValue } = validatedFields.data;
+    const newCurrentValue = currentValue + amountToAdd;
+
+    try {
+        const goalRef = doc(db, 'users', userId, 'goals', goalId);
+        await updateDoc(goalRef, { currentValue: newCurrentValue });
+        revalidatePath('/');
+        return { message: 'Goal updated successfully.' };
+    } catch (e: any) {
+        return { errors: { _server: [e.message || 'Failed to update goal.'] } };
+    }
+}
+
+
+const deleteGoalSchema = z.object({
+    userId: z.string().min(1),
+    goalId: z.string().min(1),
+});
+
+export async function deleteGoalAction(formData: FormData) {
+    if (!db) return { errors: { _server: ['Database not connected.'] } };
+
+    const values = {
+        userId: formData.get('userId'),
+        goalId: formData.get('goalId'),
+    };
+
+    const validatedFields = deleteGoalSchema.safeParse(values);
+    if (!validatedFields.success) {
+        return { errors: validatedFields.error.flatten().fieldErrors };
+    }
+
+    const { userId, goalId } = validatedFields.data;
+
+    try {
+        await deleteDoc(doc(db, 'users', userId, 'goals', goalId));
+        revalidatePath('/');
+        return { message: 'Goal deleted successfully.' };
+    } catch (e: any) {
+        return { errors: { _server: [e.message || 'Failed to delete goal.'] } };
+    }
 }

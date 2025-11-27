@@ -16,6 +16,7 @@ import { Target, Trophy } from 'lucide-react';
 interface GoalsCardProps {
   loading: boolean;
   onAddGoalClick: () => void;
+  onGoalClick: (goal: Goal) => void;
 }
 
 const goalIcons: { [key: string]: string } = {
@@ -66,7 +67,7 @@ const EmptyState = () => (
   </div>
 );
 
-const GoalItem = ({ goal }: { goal: Goal }) => {
+const GoalItem = ({ goal, onClick }: { goal: Goal, onClick: () => void }) => {
     const percentage = goal.totalValue > 0 ? (goal.currentValue / goal.totalValue) * 100 : 0;
     const isCompleted = percentage >= 100;
 
@@ -84,7 +85,7 @@ const GoalItem = ({ goal }: { goal: Goal }) => {
     }
 
     return (
-        <div className="space-y-2">
+        <div className="space-y-2 cursor-pointer rounded-lg p-2 -m-2 hover:bg-white/5 transition-colors" onClick={onClick}>
             <div className="flex justify-between items-baseline">
                 <p className="font-semibold text-sm flex items-center gap-2">
                     <span>{findIconForGoal(goal.name)}</span>
@@ -102,7 +103,7 @@ const GoalItem = ({ goal }: { goal: Goal }) => {
     );
 };
 
-export default function GoalsCard({ loading: initialLoading, onAddGoalClick }: GoalsCardProps) {
+export default function GoalsCard({ loading: initialLoading, onAddGoalClick, onGoalClick }: GoalsCardProps) {
   const { user } = useAuth();
   const [goals, setGoals] = React.useState<Goal[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -146,7 +147,7 @@ export default function GoalsCard({ loading: initialLoading, onAddGoalClick }: G
           <EmptyState />
         ) : (
           <div className="space-y-6">
-            {goals.map(goal => <GoalItem key={goal.id} goal={goal} />)}
+            {goals.map(goal => <GoalItem key={goal.id} goal={goal} onClick={() => onGoalClick(goal)} />)}
           </div>
         )}
       </CardContent>

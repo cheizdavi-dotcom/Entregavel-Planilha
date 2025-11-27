@@ -4,7 +4,7 @@ import * as React from 'react';
 import { collection, onSnapshot, query, orderBy, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
-import type { Transaction } from '@/types';
+import type { Transaction, Goal } from '@/types';
 import { startOfMonth, endOfMonth, subMonths, isSameMonth } from 'date-fns';
 
 import AuthGuard from '@/components/auth-guard';
@@ -18,6 +18,7 @@ import FinancialHealth from '@/components/dashboard/financial-health';
 import { Skeleton } from '@/components/ui/skeleton';
 import GoalsCard from '@/components/dashboard/goals-card';
 import { AddGoalDialog } from '@/components/dashboard/add-goal-dialog';
+import { UpdateGoalDialog } from '@/components/dashboard/update-goal-dialog';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -60,8 +61,15 @@ export default function DashboardPage() {
   // State for dialogs
   const [isAddTransactionOpen, setAddTransactionOpen] = React.useState(false);
   const [isAddGoalOpen, setAddGoalOpen] = React.useState(false);
+  const [isUpdateGoalOpen, setUpdateGoalOpen] = React.useState(false);
+  const [selectedGoal, setSelectedGoal] = React.useState<Goal | null>(null);
 
   const dialogInitialDate = isSameMonth(currentDate, new Date()) ? new Date() : startOfMonth(currentDate);
+
+  const handleGoalClick = (goal: Goal) => {
+    setSelectedGoal(goal);
+    setUpdateGoalOpen(true);
+  };
 
   React.useEffect(() => {
     if (user?.uid) {
@@ -167,7 +175,11 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-6 lg:col-span-3">
             <FinancialHealth transactions={transactions} totalIncome={income} loading={loading} />
             <ExpenseChart transactions={transactions} loading={loading} />
-            <GoalsCard loading={loading} onAddGoalClick={() => setAddGoalOpen(true)} />
+            <GoalsCard 
+              loading={loading} 
+              onAddGoalClick={() => setAddGoalOpen(true)}
+              onGoalClick={handleGoalClick}
+            />
         </div>
       </div>
       
@@ -196,6 +208,11 @@ export default function DashboardPage() {
         <AddGoalDialog 
             open={isAddGoalOpen} 
             onOpenChange={setAddGoalOpen} 
+        />
+        <UpdateGoalDialog
+            open={isUpdateGoalOpen}
+            onOpenChange={setUpdateGoalOpen}
+            goal={selectedGoal}
         />
         
         <Button 
