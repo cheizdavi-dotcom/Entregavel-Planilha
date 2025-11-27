@@ -26,12 +26,9 @@ export default function LoginPage() {
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
-      toast({
-        title: 'Login successful!',
-        description: 'Redirecting to your dashboard.',
-      });
       router.push('/');
     } catch (error: any) {
+      console.error("Firebase Auth Error:", error);
       toast({
         variant: 'destructive',
         title: 'Uh oh! Something went wrong.',

@@ -1,3 +1,5 @@
+import { User as FirebaseUser } from 'firebase/auth';
+
 export type Transaction = {
   id: string;
   userId: string;
@@ -8,9 +10,4 @@ export type Transaction = {
   date: string;
 };
 
-export type User = {
-  uid: string;
-  email: string | null;
-  displayName?: string | null;
-  photoURL?: string | null;
-};
+export type User = Pick<FirebaseUser, 'uid' | 'email' | 'displayName' | 'photoURL'>;
