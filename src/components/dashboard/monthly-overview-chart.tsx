@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import {
   Card,
   CardContent,
@@ -33,20 +33,16 @@ const chartConfig = {
 
 const ChartSkeleton = () => (
     <div className="h-[280px] w-full p-6">
-        <div className="flex h-full items-end gap-2">
-            <Skeleton className="h-[50%] w-8" />
-            <Skeleton className="h-[70%] w-8" />
-            <Skeleton className="h-[40%] w-8" />
-            <Skeleton className="h-[80%] w-8" />
-            <Skeleton className="h-[60%] w-8" />
-            <Skeleton className="h-[30%] w-8" />
-            <Skeleton className="h-[75%] w-8" />
-            <Skeleton className="h-[55%] w-8" />
-            <Skeleton className="h-[90%] w-8" />
-        </div>
+        <Skeleton className="h-full w-full" />
     </div>
 );
 
+const EmptyState = () => (
+    <div className="flex h-[280px] w-full flex-col items-center justify-center text-center text-muted-foreground p-4">
+        <p className="font-semibold">Adicione sua primeira transação</p>
+        <p className="text-sm">E veja a evolução do seu fluxo de caixa neste mês.</p>
+    </div>
+);
 
 export default function MonthlyOverviewChart({ transactions, loading }: MonthlyOverviewChartProps) {
   const data = React.useMemo(() => {
@@ -77,13 +73,27 @@ export default function MonthlyOverviewChart({ transactions, loading }: MonthlyO
         return dateA.localeCompare(dateB);
     });
 
-    // Se tivermos apenas um ponto de dado, duplicamos para formar uma linha
+    // If we have only one data point, we duplicate it to form a line.
     if (sortedData.length === 1) {
       return [sortedData[0], { ...sortedData[0], date: ' ' }];
     }
 
     return sortedData;
   }, [transactions]);
+
+  if (loading) {
+      return (
+        <Card className="glass-dark h-full flex flex-col">
+            <CardHeader>
+                <CardTitle>Evolução Mensal</CardTitle>
+                <CardDescription>Receitas vs. Despesas neste mês</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 flex items-center justify-center pl-2 pr-6">
+                <ChartSkeleton />
+            </CardContent>
+        </Card>
+      )
+  }
 
   const hasData = data.length > 0;
 
@@ -94,8 +104,8 @@ export default function MonthlyOverviewChart({ transactions, loading }: MonthlyO
         <CardDescription>Receitas vs. Despesas neste mês</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 flex items-center justify-center pl-2 pr-6">
-        {loading || !hasData ? (
-          <ChartSkeleton />
+        {!hasData ? (
+          <EmptyState />
         ) : (
           <ChartContainer config={chartConfig} className="h-[280px] w-full">
             <AreaChart 
@@ -123,7 +133,7 @@ export default function MonthlyOverviewChart({ transactions, loading }: MonthlyO
                     style={{ fontSize: '12px', fill: 'hsl(var(--muted-foreground))' }}
                 />
                 <YAxis
-                    tickFormatter={(value) => formatCurrency(Number(value)).replace('R$ ', 'R$')}
+                    tickFormatter={(value) => formatCurrency(Number(value)).replace('R$ ', 'R$')}
                     tickLine={false}
                     axisLine={false}
                     tickMargin={8}
@@ -134,8 +144,8 @@ export default function MonthlyOverviewChart({ transactions, loading }: MonthlyO
                 cursor={true}
                 content={<ChartTooltipContent indicator="dot" formatter={(value) => formatCurrency(Number(value))}/>}
               />
-              <Area dataKey="income" type="natural" fill="url(#fillIncome)" stroke="var(--color-income)" stackId="1" />
-              <Area dataKey="expense" type="natural" fill="url(#fillExpense)" stroke="var(--color-expense)" stackId="1" />
+              <Area dataKey="income" type="monotone" fill="url(#fillIncome)" stroke="var(--color-income)" stackId="1" strokeWidth={2} />
+              <Area dataKey="expense" type="monotone" fill="url(#fillExpense)" stroke="var(--color-expense)" stackId="1" strokeWidth={2} />
             </AreaChart>
           </ChartContainer>
         )}

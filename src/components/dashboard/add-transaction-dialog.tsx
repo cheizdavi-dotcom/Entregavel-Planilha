@@ -36,8 +36,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Plus, Briefcase, GraduationCap, Utensils, Home, Car, PartyPopper, HeartPulse, Landmark, PiggyBank } from 'lucide-react';
-import { categoriesConfig, Category } from '@/lib/categories';
+import { Plus } from 'lucide-react';
+import { categoriesConfig } from '@/lib/categories';
 
 const formSchema = z.object({
   type: z.enum(['income', 'expense'], { required_error: 'Selecione o tipo.' }),

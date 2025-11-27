@@ -31,6 +31,14 @@ const ChartSkeleton = () => (
     </div>
 );
 
+const EmptyState = () => (
+  <div className="flex h-[180px] flex-col items-center justify-center text-center text-muted-foreground p-4">
+    <PartyPopper className="h-10 w-10 mb-4 text-primary" />
+    <p className="font-semibold">Sem despesas ainda!</p>
+    <p className="text-sm">Adicione uma despesa para ver o gráfico de categorias.</p>
+  </div>
+);
+
 
 export default function ExpenseChart({ transactions, loading }: ExpenseChartProps) {
   const expenseData = React.useMemo(() => {
@@ -66,6 +74,20 @@ export default function ExpenseChart({ transactions, loading }: ExpenseChartProp
     return expenseData.reduce((sum, item) => sum + item.total, 0);
   }, [expenseData]);
 
+  if (loading) {
+    return (
+        <Card className="glass-dark h-full flex flex-col">
+            <CardHeader>
+                <CardTitle>Gastos por Categoria</CardTitle>
+                <CardDescription>Distribuição de despesas</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 flex items-center justify-center">
+                <ChartSkeleton />
+            </CardContent>
+        </Card>
+    )
+  }
+
   const hasData = expenseData.length > 0;
 
   return (
@@ -75,8 +97,8 @@ export default function ExpenseChart({ transactions, loading }: ExpenseChartProp
         <CardDescription>Distribuição de despesas</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 flex items-center justify-center">
-        {loading || !hasData ? (
-          <ChartSkeleton />
+        {!hasData ? (
+          <EmptyState />
         ) : (
            <ChartContainer
             config={chartConfig}

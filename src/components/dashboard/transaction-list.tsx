@@ -52,6 +52,14 @@ const SkeletonRow = () => (
     </TableRow>
 );
 
+const EmptyState = () => (
+    <TableRow>
+        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+            Ainda não há transações. Adicione a primeira!
+        </TableCell>
+    </TableRow>
+);
+
 
 export default function TransactionList({ transactions, loading }: TransactionListProps) {
   const hasTransactions = transactions.length > 0;
@@ -72,7 +80,7 @@ export default function TransactionList({ transactions, loading }: TransactionLi
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading || !hasTransactions ? (
+              {loading ? (
                 <>
                     <SkeletonRow />
                     <SkeletonRow />
@@ -80,7 +88,7 @@ export default function TransactionList({ transactions, loading }: TransactionLi
                     <SkeletonRow />
                     <SkeletonRow />
                 </>
-              ) : (
+              ) : hasTransactions ? (
                 transactions.map((t) => (
                     <TableRow key={t.id}>
                     <TableCell>
@@ -111,6 +119,8 @@ export default function TransactionList({ transactions, loading }: TransactionLi
                     </TableCell>
                     </TableRow>
                 ))
+              ) : (
+                <EmptyState />
               )}
             </TableBody>
           </Table>
