@@ -11,3 +11,11 @@ export type Transaction = {
 };
 
 export type User = Pick<FirebaseUser, 'uid' | 'email' | 'displayName' | 'photoURL'>;
+
+export type Goal = {
+    id: string;
+    userId: string;
+    name: string;
+    currentValue: number;
+    totalValue: number;
+};

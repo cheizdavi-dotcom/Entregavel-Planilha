@@ -37,7 +37,6 @@ export async function addTransactionAction(formData: FormData) {
   }
 
   try {
-    // Correção: Salva na subcoleção de transações do usuário.
     await addDoc(collection(db, 'users', validatedFields.data.userId, 'transactions'), {
       type: validatedFields.data.type,
       amount: validatedFields.data.amount,
@@ -46,17 +45,56 @@ export async function addTransactionAction(formData: FormData) {
       date: new Date().toISOString(),
     });
 
-    // Se a operação for bem-sucedida, revalida o cache e retorna sucesso.
     revalidatePath('/');
     return {
       message: 'Transaction added successfully.',
     };
   } catch (e: any) {
-    // Se ocorrer qualquer erro durante o addDoc (regras de segurança, problemas de rede, etc.)
-    // o erro será capturado aqui.
     console.error("Firebase Add Transaction Error: ", e);
     return {
       errors: { _server: [e.message || 'Falha ao adicionar transação. Verifique as regras do Firestore ou sua conexão.'] },
+    };
+  }
+}
+
+
+const goalSchema = z.object({
+  userId: z.string().min(1),
+  name: z.string().min(1).max(50),
+  totalValue: z.coerce.number().positive(),
+  currentValue: z.coerce.number().min(0),
+});
+
+export async function addGoalAction(formData: FormData) {
+  if (!db) {
+    return {
+      errors: { _server: ['A conexão com o banco de dados não foi estabelecida.'] },
+    };
+  }
+
+  const values = {
+    userId: formData.get('userId'),
+    name: formData.get('name'),
+    totalValue: formData.get('totalValue'),
+    currentValue: formData.get('currentValue'),
+  };
+
+  const validatedFields = goalSchema.safeParse(values);
+
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+    };
+  }
+
+  try {
+    await addDoc(collection(db, 'users', validatedFields.data.userId, 'goals'), validatedFields.data);
+    revalidatePath('/');
+    return { message: 'Goal added successfully.' };
+  } catch (e: any) {
+    console.error("Firebase Add Goal Error: ", e);
+    return {
+      errors: { _server: [e.message || 'Falha ao adicionar meta.'] },
     };
   }
 }

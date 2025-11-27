@@ -16,6 +16,9 @@ import TransactionList from '@/components/dashboard/transaction-list';
 import { AddTransactionDialog } from '@/components/dashboard/add-transaction-dialog';
 import FinancialHealth from '@/components/dashboard/financial-health';
 import { Skeleton } from '@/components/ui/skeleton';
+import GoalsCard from '@/components/dashboard/goals-card';
+import { AddGoalDialog } from '@/components/dashboard/add-goal-dialog';
+
 
 const DashboardSkeleton = () => (
     <div className="flex flex-col min-h-screen bg-background">
@@ -156,6 +159,7 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-6 lg:col-span-3">
             <FinancialHealth transactions={transactions} totalIncome={income} loading={loading} />
             <ExpenseChart transactions={transactions} loading={loading} />
+            <GoalsCard loading={loading} />
         </div>
       </div>
       
@@ -176,6 +180,7 @@ export default function DashboardPage() {
           {loading ? <DashboardSkeleton /> : <MainContent />}
         </main>
         <AddTransactionDialog />
+        <AddGoalDialog />
       </div>
     </AuthGuard>
   );
