@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 import { Button } from '@/components/ui/button';
@@ -20,8 +20,20 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  
+  // O 'auth' e 'db' podem ser nulos se a configuração estiver faltando.
+  const isFirebaseReady = !!auth && !!db;
 
   const handleGoogleSignIn = async () => {
+    if (!auth) {
+        toast({
+            variant: 'destructive',
+            title: 'Erro de Configuração',
+            description: 'A configuração do Firebase está ausente. Verifique o console para mais detalhes.',
+        });
+        return;
+    }
+
     setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
@@ -47,16 +59,16 @@ export default function LoginPage() {
                 <Logo />
             </div>
           <CardTitle className="text-2xl font-bold">Bem-vindo de volta!</CardTitle>
-          <CardDescription>Clique abaixo para entrar.</CardDescription>
+          <CardDescription>Clique abaixo para entrar com sua conta Google.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
             <Button 
                 onClick={handleGoogleSignIn} 
                 className="w-full h-12 text-lg font-semibold glass-dark border-primary/50 hover:border-primary hover:bg-primary/10 transition-all duration-300" 
-                disabled={loading}
+                disabled={loading || !isFirebaseReady}
                 variant="outline"
             >
-               {loading ? 'Entrando...' : <><GoogleIcon /> Entrar com Google</>}
+               {!isFirebaseReady ? 'Carregando configuração...' : (loading ? 'Entrando...' : <><GoogleIcon /> Entrar com Google</>)}
             </Button>
         </CardContent>
       </Card>
