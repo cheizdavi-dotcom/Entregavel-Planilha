@@ -29,9 +29,10 @@ import { Input } from '@/components/ui/input';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Nome muito curto.' }).max(50),
-  totalValue: z.string().refine(val => !isNaN(parseFloat(val.replace(',', '.'))), { message: 'Valor inválido.'}),
-  currentValue: z.string().refine(val => !isNaN(parseFloat(val.replace(',', '.'))), { message: 'Valor inválido.'}),
+  totalValue: z.string().refine(val => /^\d+([,.]\d{1,2})?$/.test(val) && parseFloat(val.replace(',', '.')) > 0, { message: 'Valor total inválido ou não é positivo.'}),
+  currentValue: z.string().refine(val => /^\d+([,.]\d{1,2})?$/.test(val) && parseFloat(val.replace(',', '.')) >= 0, { message: 'Valor atual inválido.'}),
 });
+
 
 interface AddGoalDialogProps {
   open: boolean;
@@ -47,7 +48,7 @@ export function AddGoalDialog({ open, onOpenChange }: AddGoalDialogProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
-      totalValue: '0',
+      totalValue: '',
       currentValue: '0',
     },
   });
@@ -63,17 +64,6 @@ export function AddGoalDialog({ open, onOpenChange }: AddGoalDialogProps) {
     try {
       const totalValue = parseFloat(values.totalValue.replace(',', '.'));
       const currentValue = parseFloat(values.currentValue.replace(',', '.'));
-
-      if (isNaN(totalValue) || totalValue <= 0) {
-          form.setError('totalValue', { message: 'O valor total deve ser positivo.' });
-          setIsSubmitting(false);
-          return;
-      }
-       if (isNaN(currentValue) || currentValue < 0) {
-          form.setError('currentValue', { message: 'O valor atual deve ser positivo ou zero.' });
-          setIsSubmitting(false);
-          return;
-      }
 
       const formData = new FormData();
       formData.append('userId', user.uid);
@@ -96,6 +86,16 @@ export function AddGoalDialog({ open, onOpenChange }: AddGoalDialogProps) {
         setIsSubmitting(false);
     }
   }
+  
+  React.useEffect(() => {
+    if (open) {
+      form.reset({
+        name: '',
+        totalValue: '',
+        currentValue: '0',
+      });
+    }
+  }, [open, form]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
