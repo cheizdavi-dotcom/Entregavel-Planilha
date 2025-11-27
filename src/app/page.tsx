@@ -60,7 +60,7 @@ export default function DashboardPage() {
 
 
   const MainContent = () => (
-    <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
+    <div className="flex flex-col gap-6 p-4 md:p-8 pt-6">
       <Header />
       
       {/* Cards de Resumo */}
@@ -68,6 +68,7 @@ export default function DashboardPage() {
         <SummaryCards balance={balance} income={income} expenses={expenses} loading={loading}/>
       </div>
       
+      {/* Layout Principal com 2 colunas */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Coluna Esquerda */}
         <div className="lg:col-span-2">
