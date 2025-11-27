@@ -5,12 +5,12 @@ import { getFirestore } from 'firebase/firestore';
 // IMPORTANT: Replace this with your own Firebase configuration
 // You can get this from your Firebase project settings
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "your-api-key",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "your-auth-domain",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "your-project-id",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "your-storage-bucket",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "your-messaging-sender-id",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "your-app-id",
+  "projectId": "studio-7230625454-2a5c2",
+  "appId": "1:908240042642:web:1b4cd5d5eb1d1ffe17c44b",
+  "apiKey": "AIzaSyBPd6NvwuDnlkT0rOVeIrTpO5m3jezszoo",
+  "authDomain": "studio-7230625454-2a5c2.firebaseapp.com",
+  "measurementId": "",
+  "messagingSenderId": "908240042642"
 };
 
 
