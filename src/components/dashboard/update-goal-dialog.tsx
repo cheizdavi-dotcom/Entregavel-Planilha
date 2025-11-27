@@ -42,7 +42,7 @@ import {
 import { Input } from '@/components/ui/input';
 
 const formSchema = z.object({
-  amountToAdd: z.string().refine(val => /^\d+([,.]\d{1,2})?$/.test(val) && parseFloat(val.replace(',', '.')) > 0, { message: 'Valor inválido ou não é positivo.'}),
+  currentValue: z.string().refine(val => !isNaN(parseFloat(val.replace(',', '.'))) && parseFloat(val.replace(',', '.')) >= 0, { message: 'Valor inválido.'}),
 });
 
 interface UpdateGoalDialogProps {
@@ -60,10 +60,10 @@ export function UpdateGoalDialog({ open, onOpenChange, goal }: UpdateGoalDialogP
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      amountToAdd: '',
+      currentValue: '0',
     },
   });
-
+  
   const handleClose = () => {
     onOpenChange(false);
     form.reset();
@@ -74,13 +74,12 @@ export function UpdateGoalDialog({ open, onOpenChange, goal }: UpdateGoalDialogP
     
     setIsSubmitting(true);
     try {
-      const amountToAdd = parseFloat(values.amountToAdd.replace(',', '.'));
+      const currentValue = parseFloat(values.currentValue.replace(',', '.'));
       
       const formData = new FormData();
       formData.append('userId', user.uid);
       formData.append('goalId', goal.id);
-      formData.append('amountToAdd', amountToAdd.toString());
-      formData.append('currentValue', goal.currentValue.toString());
+      formData.append('currentValue', currentValue.toString());
 
       const result = await updateGoalAction(formData);
 
@@ -122,10 +121,12 @@ export function UpdateGoalDialog({ open, onOpenChange, goal }: UpdateGoalDialogP
   }
   
   React.useEffect(() => {
-    if (open) {
-      form.reset();
+    if (goal) {
+      form.reset({
+        currentValue: String(goal.currentValue).replace('.', ',')
+      });
     }
-  }, [open, form]);
+  }, [goal, form, open]);
 
   const remainingValue = goal ? goal.totalValue - goal.currentValue : 0;
 
@@ -133,7 +134,7 @@ export function UpdateGoalDialog({ open, onOpenChange, goal }: UpdateGoalDialogP
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px] glass-dark border-border/20">
         <DialogHeader>
-          <DialogTitle>{goal?.name || 'Atualizar Meta'}</DialogTitle>
+          <DialogTitle>Gerenciar: {goal?.name || 'Meta'}</DialogTitle>
           <DialogDescription>
             {remainingValue > 0 
                 ? `Faltam ${formatCurrency(remainingValue)} para atingir seu objetivo.`
@@ -145,10 +146,10 @@ export function UpdateGoalDialog({ open, onOpenChange, goal }: UpdateGoalDialogP
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="amountToAdd"
+              name="currentValue"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Valor a Adicionar (+)</FormLabel>
+                  <FormLabel>Total Guardado</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground">R$</span>
@@ -187,8 +188,8 @@ export function UpdateGoalDialog({ open, onOpenChange, goal }: UpdateGoalDialogP
                     <DialogClose asChild>
                         <Button type="button" variant="ghost" disabled={isSubmitting}>Cancelar</Button>
                     </DialogClose>
-                    <Button type="submit" disabled={isSubmitting || remainingValue <= 0}>
-                        {isSubmitting ? "Salvando..." : "Adicionar Investimento"}
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting ? "Salvando..." : "Salvar Alterações"}
                     </Button>
                 </div>
             </DialogFooter>

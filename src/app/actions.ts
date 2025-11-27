@@ -108,7 +108,6 @@ export async function addGoalAction(formData: FormData) {
 const updateGoalSchema = z.object({
     userId: z.string().min(1),
     goalId: z.string().min(1),
-    amountToAdd: z.coerce.number().positive("O valor a adicionar deve ser positivo."),
     currentValue: z.coerce.number().min(0),
 });
 
@@ -118,7 +117,6 @@ export async function updateGoalAction(formData: FormData) {
     const values = {
         userId: formData.get('userId'),
         goalId: formData.get('goalId'),
-        amountToAdd: formData.get('amountToAdd'),
         currentValue: formData.get('currentValue'),
     };
 
@@ -127,12 +125,11 @@ export async function updateGoalAction(formData: FormData) {
         return { errors: validatedFields.error.flatten().fieldErrors };
     }
 
-    const { userId, goalId, amountToAdd, currentValue } = validatedFields.data;
-    const newCurrentValue = currentValue + amountToAdd;
+    const { userId, goalId, currentValue } = validatedFields.data;
 
     try {
         const goalRef = doc(db, 'users', userId, 'goals', goalId);
-        await updateDoc(goalRef, { currentValue: newCurrentValue });
+        await updateDoc(goalRef, { currentValue: currentValue });
         revalidatePath('/');
         return { message: 'Goal updated successfully.' };
     } catch (e: any) {

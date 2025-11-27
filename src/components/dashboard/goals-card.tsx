@@ -85,29 +85,22 @@ const GoalItem = ({ goal, onClick }: { goal: Goal, onClick: () => void }) => {
     }
 
     return (
-        <div className="space-y-2 rounded-lg p-2 -m-2">
+        <div 
+            className="group space-y-2 rounded-lg p-3 transition-all duration-200 cursor-pointer hover:bg-white/5 hover:scale-[1.02] hover:border hover:border-primary/50"
+            onClick={onClick}
+        >
             <div className="flex justify-between items-center">
                 <p className="font-semibold text-sm flex items-center gap-2">
                     <span>{findIconForGoal(goal.name)}</span>
                     {goal.name}
                 </p>
-                 <Button 
-                    variant="outline" 
-                    size="icon"
-                    className="h-8 w-8 bg-primary/10 border-primary/30 text-primary hover:bg-primary/20 hover:text-primary"
-                    onClick={onClick}
-                >
-                    <Plus className="h-4 w-4" />
-                </Button>
+                 <span className="text-sm font-bold w-12 text-right">{percentage.toFixed(0)}%</span>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
+                <Progress value={percentage} indicatorClassName="bg-primary" className="h-2" />
                 <div className="flex justify-between text-xs text-muted-foreground">
                     <span className="font-bold text-foreground">{formatCurrency(goal.currentValue)}</span>
-                    <span>{formatCurrency(goal.totalValue)}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                    <Progress value={percentage} indicatorClassName="bg-primary" className="h-2 flex-1" />
-                    <span className="text-sm font-bold w-12 text-right">{percentage.toFixed(0)}%</span>
+                    <span>de {formatCurrency(goal.totalValue)}</span>
                 </div>
             </div>
         </div>
@@ -157,7 +150,7 @@ export default function GoalsCard({ loading: initialLoading, onAddGoalClick, onG
         ) : goals.length === 0 ? (
           <EmptyState />
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {goals.map(goal => <GoalItem key={goal.id} goal={goal} onClick={() => onGoalClick(goal)} />)}
           </div>
         )}
