@@ -69,19 +69,19 @@ export default function DashboardPage() {
 
 
   const MainContent = () => (
-    <div className="flex flex-col gap-6 p-4 md:p-8 pt-6 pb-[120px]">
+    <div className="flex flex-col gap-6 p-4 pt-6 pb-[150px] md:p-8">
       <Header />
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <SummaryCards balance={balance} income={income} expenses={expenses} loading={loading}/>
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-7">
         <div className="lg:col-span-4">
             <MonthlyOverviewChart transactions={transactions} loading={loading} />
         </div>
         
-        <div className="lg:col-span-3 flex flex-col gap-6">
+        <div className="flex flex-col gap-6 lg:col-span-3">
             <FinancialHealth transactions={transactions} totalIncome={income} loading={loading} />
             <ExpenseChart transactions={transactions} loading={loading} />
         </div>
