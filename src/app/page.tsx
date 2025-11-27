@@ -24,14 +24,16 @@ export default function DashboardPage() {
     if (user?.uid) {
       setLoading(true);
       if (!db) {
+        console.error("Conexão com o Firestore não estabelecida.");
         setLoading(false);
         return;
       }
-      // Correção: Aponta para a subcoleção de transações do usuário logado.
+      
       const q = query(
         collection(db, 'users', user.uid, 'transactions'),
         orderBy('date', 'desc')
       );
+      
       const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const userTransactions: Transaction[] = [];
         querySnapshot.forEach((doc) => {
@@ -43,6 +45,7 @@ export default function DashboardPage() {
         console.error("Error fetching transactions: ", error);
         setLoading(false);
       });
+      
       return () => unsubscribe();
     } else {
         setLoading(false);
@@ -66,7 +69,7 @@ export default function DashboardPage() {
 
 
   const MainContent = () => (
-    <div className="flex flex-col gap-6 p-4 md:p-8 pt-6">
+    <div className="flex flex-col gap-6 p-4 md:p-8 pt-6 pb-[120px]">
       <Header />
       
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
