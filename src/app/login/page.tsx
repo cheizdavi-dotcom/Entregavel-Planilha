@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
+import { auth } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 import { Button } from '@/components/ui/button';
@@ -21,9 +21,6 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   
-  // O 'auth' e 'db' podem ser nulos se a configuração estiver faltando.
-  const isFirebaseReady = !!auth && !!db;
-
   const handleGoogleSignIn = async () => {
     if (!auth) {
         toast({
@@ -43,8 +40,8 @@ export default function LoginPage() {
       console.error("Firebase Auth Error:", error);
       toast({
         variant: 'destructive',
-        title: 'Uh oh! Something went wrong.',
-        description: error.message || 'Could not sign in with Google.',
+        title: 'Uh oh! Algo deu errado.',
+        description: error.message || 'Não foi possível entrar com o Google.',
       });
     } finally {
       setLoading(false);
@@ -65,10 +62,10 @@ export default function LoginPage() {
             <Button 
                 onClick={handleGoogleSignIn} 
                 className="w-full h-12 text-lg font-semibold glass-dark border-primary/50 hover:border-primary hover:bg-primary/10 transition-all duration-300" 
-                disabled={loading || !isFirebaseReady}
+                disabled={loading}
                 variant="outline"
             >
-               {!isFirebaseReady ? 'Carregando configuração...' : (loading ? 'Entrando...' : <><GoogleIcon /> Entrar com Google</>)}
+               {loading ? 'Entrando...' : <><GoogleIcon /> Entrar com Google</>}
             </Button>
         </CardContent>
       </Card>
