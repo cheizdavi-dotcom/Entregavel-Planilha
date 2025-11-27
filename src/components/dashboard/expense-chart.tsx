@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/chart';
 import type { Transaction } from '@/types';
 import { categoriesConfig } from '@/lib/categories';
+import { PartyPopper } from 'lucide-react';
 
 interface ExpenseChartProps {
   transactions: Transaction[];
