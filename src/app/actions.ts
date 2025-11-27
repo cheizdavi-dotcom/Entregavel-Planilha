@@ -37,19 +37,23 @@ export async function addTransactionAction(formData: FormData) {
   }
 
   try {
+    // Tentativa de salvar os dados no Firestore.
     await addDoc(collection(db, 'transactions'), {
       ...validatedFields.data,
       date: new Date().toISOString(),
     });
 
+    // Se a operação for bem-sucedida, revalida o cache e retorna sucesso.
     revalidatePath('/');
-
     return {
       message: 'Transaction added successfully.',
     };
   } catch (e: any) {
+    // Se ocorrer qualquer erro durante o addDoc (regras de segurança, problemas de rede, etc.)
+    // o erro será capturado aqui.
+    console.error("Firebase Add Transaction Error: ", e);
     return {
-      errors: { _server: [e.message || 'Falha ao adicionar transação.'] },
+      errors: { _server: [e.message || 'Falha ao adicionar transação. Verifique as regras do Firestore ou sua conexão.'] },
     };
   }
 }

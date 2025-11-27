@@ -70,10 +70,7 @@ export function AddTransactionDialog() {
   const availableCategories = Object.values(categoriesConfig).filter(cat => cat.type === transactionType);
 
   React.useEffect(() => {
-    form.reset({
-        ...form.getValues(),
-        category: '',
-    });
+    form.resetField('category');
   }, [transactionType, form]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -89,9 +86,11 @@ export function AddTransactionDialog() {
     setIsSubmitting(true);
 
     try {
-        const amountAsNumber = parseFloat(values.amount.replace(',', '.'));
+        const amountAsString = values.amount.replace(',', '.');
+        const amountAsNumber = parseFloat(amountAsString);
+
         if (isNaN(amountAsNumber) || amountAsNumber <= 0) {
-            form.setError('amount', { message: 'O valor deve ser positivo.' });
+            form.setError('amount', { message: 'O valor deve ser um número positivo.' });
             setIsSubmitting(false);
             return;
         }
@@ -108,13 +107,15 @@ export function AddTransactionDialog() {
         if (result?.errors) {
             toast({
                 variant: 'destructive',
-                title: 'Erro ao adicionar transação',
+                title: 'Erro ao Adicionar Transação',
                 description: result.errors._server?.[0] || 'Por favor, verifique os campos e tente novamente.',
             });
         } else {
             toast({
                 title: 'Sucesso!',
                 description: 'Sua transação foi adicionada.',
+                variant: 'default',
+                className: 'bg-primary text-primary-foreground'
             });
             form.reset({ type: 'expense', description: '', amount: '0', category: '' });
             setOpen(false);
