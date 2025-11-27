@@ -5,7 +5,7 @@ import { collection, onSnapshot, query, orderBy, where } from 'firebase/firestor
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import type { Transaction } from '@/types';
-import { startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { startOfMonth, endOfMonth, subMonths, isSameMonth } from 'date-fns';
 
 import AuthGuard from '@/components/auth-guard';
 import Header from '@/components/dashboard/header';
@@ -18,6 +18,8 @@ import FinancialHealth from '@/components/dashboard/financial-health';
 import { Skeleton } from '@/components/ui/skeleton';
 import GoalsCard from '@/components/dashboard/goals-card';
 import { AddGoalDialog } from '@/components/dashboard/add-goal-dialog';
+import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 
 const DashboardSkeleton = () => (
@@ -54,6 +56,12 @@ export default function DashboardPage() {
   const [prevMonthTransactions, setPrevMonthTransactions] = React.useState<Transaction[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [currentDate, setCurrentDate] = React.useState(new Date());
+
+  // State for dialogs
+  const [isAddTransactionOpen, setAddTransactionOpen] = React.useState(false);
+  const [isAddGoalOpen, setAddGoalOpen] = React.useState(false);
+
+  const dialogInitialDate = isSameMonth(currentDate, new Date()) ? new Date() : startOfMonth(currentDate);
 
   React.useEffect(() => {
     if (user?.uid) {
@@ -159,7 +167,7 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-6 lg:col-span-3">
             <FinancialHealth transactions={transactions} totalIncome={income} loading={loading} />
             <ExpenseChart transactions={transactions} loading={loading} />
-            <GoalsCard loading={loading} />
+            <GoalsCard loading={loading} onAddGoalClick={() => setAddGoalOpen(true)} />
         </div>
       </div>
       
@@ -179,8 +187,23 @@ export default function DashboardPage() {
         <main className="flex-1">
           {loading ? <DashboardSkeleton /> : <MainContent />}
         </main>
-        <AddTransactionDialog />
-        <AddGoalDialog />
+        
+        <AddTransactionDialog 
+            open={isAddTransactionOpen}
+            onOpenChange={setAddTransactionOpen}
+            initialDate={dialogInitialDate}
+        />
+        <AddGoalDialog 
+            open={isAddGoalOpen} 
+            onOpenChange={setAddGoalOpen} 
+        />
+        
+        <Button 
+            className="fixed bottom-8 right-8 h-16 w-16 rounded-full shadow-lg shadow-primary/30"
+            onClick={() => setAddTransactionOpen(true)}
+        >
+          <Plus className="h-8 w-8" />
+        </Button>
       </div>
     </AuthGuard>
   );

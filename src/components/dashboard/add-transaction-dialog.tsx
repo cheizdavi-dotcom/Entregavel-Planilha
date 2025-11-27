@@ -7,11 +7,15 @@ import { z } from 'zod';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { addTransactionAction } from '@/app/actions';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { CalendarIcon, Plus } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { categoriesConfig } from '@/lib/categories';
 
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -35,14 +39,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Plus } from 'lucide-react';
-import { categoriesConfig } from '@/lib/categories';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+
 
 const formSchema = z.object({
   type: z.enum(['income', 'expense'], { required_error: 'Selecione o tipo.' }),
   amount: z.string().refine(val => !isNaN(parseFloat(val.replace(',', '.'))), { message: 'Valor inválido.'}),
   description: z.string().min(2, { message: 'Descrição muito curta.' }).max(50),
   category: z.string({ required_error: 'Selecione uma categoria.' }),
+  date: z.date({ required_error: 'A data é obrigatória.' }),
 });
 
 const CategoryIcon = ({ category, className }: { category: string; className?: string }) => {
@@ -50,8 +56,13 @@ const CategoryIcon = ({ category, className }: { category: string; className?: s
     return Icon ? <Icon className={className} /> : null;
 };
 
-export function AddTransactionDialog() {
-  const [open, setOpen] = React.useState(false);
+interface AddTransactionDialogProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    initialDate: Date;
+}
+
+export function AddTransactionDialog({ open, onOpenChange, initialDate }: AddTransactionDialogProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -62,11 +73,23 @@ export function AddTransactionDialog() {
       type: 'expense',
       description: '',
       amount: '0',
+      date: initialDate,
     },
   });
 
-  const transactionType = form.watch('type');
+  React.useEffect(() => {
+    if (open) {
+      form.reset({
+        type: 'expense',
+        description: '',
+        amount: '0',
+        category: '',
+        date: initialDate,
+      });
+    }
+  }, [open, initialDate, form]);
 
+  const transactionType = form.watch('type');
   const availableCategories = Object.values(categoriesConfig).filter(cat => cat.type === transactionType);
 
   React.useEffect(() => {
@@ -101,6 +124,7 @@ export function AddTransactionDialog() {
         formData.append('amount', amountAsNumber.toString());
         formData.append('description', values.description);
         formData.append('category', values.category);
+        formData.append('date', values.date.toISOString().split('T')[0]); // Envia apenas a data YYYY-MM-DD
 
         const result = await addTransactionAction(formData);
 
@@ -117,8 +141,7 @@ export function AddTransactionDialog() {
                 variant: 'default',
                 className: 'bg-primary text-primary-foreground'
             });
-            form.reset({ type: 'expense', description: '', amount: '0', category: '' });
-            setOpen(false);
+            onOpenChange(false);
         }
     } catch (error: any) {
         toast({
@@ -132,12 +155,7 @@ export function AddTransactionDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="fixed bottom-8 right-8 h-16 w-16 rounded-full shadow-lg shadow-primary/30">
-          <Plus className="h-8 w-8" />
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px] glass-dark border-border/20">
         <DialogHeader>
           <DialogTitle>Nova Transação</DialogTitle>
@@ -176,22 +194,68 @@ export function AddTransactionDialog() {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Valor</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                        <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground">R$</span>
-                        <Input type="text" placeholder="0,00" {...field} className="pl-10" disabled={isSubmitting}/>
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+                <FormField
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Valor</FormLabel>
+                    <FormControl>
+                        <div className="relative">
+                            <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground">R$</span>
+                            <Input type="text" placeholder="0,00" {...field} className="pl-10" disabled={isSubmitting}/>
+                        </div>
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="date"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-col pt-2">
+                        <FormLabel className="mb-[11px]">Data</FormLabel>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <FormControl>
+                                <Button
+                                variant={"outline"}
+                                className={cn(
+                                    "pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                )}
+                                disabled={isSubmitting}
+                                >
+                                {field.value ? (
+                                    format(field.value, "dd/MM/yy")
+                                ) : (
+                                    <span>Escolha uma data</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                            </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date) =>
+                                date > new Date() || date < new Date("1900-01-01")
+                                }
+                                initialFocus
+                                locale={ptBR}
+                            />
+                            </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+
 
             <FormField
               control={form.control}

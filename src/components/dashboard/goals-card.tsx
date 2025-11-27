@@ -12,10 +12,10 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Target, Trophy } from 'lucide-react';
-import { AddGoalDialog } from './add-goal-dialog';
 
 interface GoalsCardProps {
   loading: boolean;
+  onAddGoalClick: () => void;
 }
 
 const goalIcons: { [key: string]: string } = {
@@ -102,11 +102,10 @@ const GoalItem = ({ goal }: { goal: Goal }) => {
     );
 };
 
-export default function GoalsCard({ loading: initialLoading }: GoalsCardProps) {
+export default function GoalsCard({ loading: initialLoading, onAddGoalClick }: GoalsCardProps) {
   const { user } = useAuth();
   const [goals, setGoals] = React.useState<Goal[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [isAddGoalOpen, setAddGoalOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (user?.uid) {
@@ -132,28 +131,25 @@ export default function GoalsCard({ loading: initialLoading }: GoalsCardProps) {
   const isLoading = initialLoading || loading;
 
   return (
-    <>
-      <Card className="glass-dark h-full flex flex-col">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Meus Objetivos</CardTitle>
-            <CardDescription>Acompanhe seu progresso</CardDescription>
+    <Card className="glass-dark h-full flex flex-col">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Meus Objetivos</CardTitle>
+          <CardDescription>Acompanhe seu progresso</CardDescription>
+        </div>
+        <Button size="sm" onClick={onAddGoalClick}>Nova Meta</Button>
+      </CardHeader>
+      <CardContent className="flex-1 flex flex-col justify-center">
+        {isLoading ? (
+          <SkeletonLoader />
+        ) : goals.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <div className="space-y-6">
+            {goals.map(goal => <GoalItem key={goal.id} goal={goal} />)}
           </div>
-          <Button size="sm" onClick={() => setAddGoalOpen(true)}>Nova Meta</Button>
-        </CardHeader>
-        <CardContent className="flex-1 flex flex-col justify-center">
-          {isLoading ? (
-            <SkeletonLoader />
-          ) : goals.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div className="space-y-6">
-              {goals.map(goal => <GoalItem key={goal.id} goal={goal} />)}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      <AddGoalDialog open={isAddGoalOpen} onOpenChange={setAddGoalOpen} />
-    </>
+        )}
+      </CardContent>
+    </Card>
   );
 }

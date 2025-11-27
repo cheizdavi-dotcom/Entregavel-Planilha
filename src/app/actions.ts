@@ -11,6 +11,7 @@ const transactionSchema = z.object({
   amount: z.coerce.number().positive(),
   description: z.string().min(1).max(100),
   category: z.string().min(1),
+  date: z.string().min(1, 'A data é obrigatória.'),
 });
 
 export async function addTransactionAction(formData: FormData) {
@@ -26,6 +27,7 @@ export async function addTransactionAction(formData: FormData) {
     amount: formData.get('amount'),
     description: formData.get('description'),
     category: formData.get('category'),
+    date: formData.get('date'),
   };
 
   const validatedFields = transactionSchema.safeParse(values);
@@ -37,12 +39,16 @@ export async function addTransactionAction(formData: FormData) {
   }
 
   try {
+    // Adiciona o horário ao meio-dia para evitar problemas de fuso horário (timezone)
+    const date = new Date(validatedFields.data.date);
+    date.setUTCHours(12);
+
     await addDoc(collection(db, 'users', validatedFields.data.userId, 'transactions'), {
       type: validatedFields.data.type,
       amount: validatedFields.data.amount,
       description: validatedFields.data.description,
       category: validatedFields.data.category,
-      date: new Date().toISOString(),
+      date: date.toISOString(),
     });
 
     revalidatePath('/');
