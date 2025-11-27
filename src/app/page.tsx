@@ -35,10 +35,12 @@ export default function DashboardPage() {
         });
         setTransactions(userTransactions);
         setLoading(false);
+      }, (error) => {
+        console.error("Error fetching transactions: ", error);
+        setLoading(false);
       });
       return () => unsubscribe();
     } else {
-        // Se não houver usuário, pare de carregar e mostre o estado vazio (com skeletons)
         setLoading(false);
     }
   }, [user]);
@@ -63,27 +65,24 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6 p-4 md:p-8 pt-6">
       <Header />
       
-      {/* Cards de Resumo */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <SummaryCards balance={balance} income={income} expenses={expenses} loading={loading}/>
       </div>
       
-      {/* Layout Principal com 2 colunas */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Coluna Esquerda */}
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
+        <div className="lg:col-span-4">
             <MonthlyOverviewChart transactions={transactions} loading={loading} />
         </div>
         
-        {/* Coluna Direita */}
-        <div className="space-y-6">
+        <div className="lg:col-span-3 flex flex-col gap-6">
             <FinancialHealth transactions={transactions} totalIncome={income} loading={loading} />
             <ExpenseChart transactions={transactions} loading={loading} />
         </div>
       </div>
       
-      {/* Tabela de transações */}
-      <TransactionList transactions={transactions} loading={loading} />
+      <div className="relative z-10">
+        <TransactionList transactions={transactions} loading={loading} />
+      </div>
     </div>
   );
 
