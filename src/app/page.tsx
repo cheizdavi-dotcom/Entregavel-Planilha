@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import type { Transaction } from '@/types';
@@ -23,9 +23,13 @@ export default function DashboardPage() {
   React.useEffect(() => {
     if (user?.uid) {
       setLoading(true);
+      if (!db) {
+        setLoading(false);
+        return;
+      }
+      // Correção: Aponta para a subcoleção de transações do usuário logado.
       const q = query(
-        collection(db, 'transactions'),
-        where('userId', '==', user.uid),
+        collection(db, 'users', user.uid, 'transactions'),
         orderBy('date', 'desc')
       );
       const unsubscribe = onSnapshot(q, (querySnapshot) => {

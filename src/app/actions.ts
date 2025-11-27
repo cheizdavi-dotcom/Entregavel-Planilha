@@ -37,9 +37,12 @@ export async function addTransactionAction(formData: FormData) {
   }
 
   try {
-    // Tentativa de salvar os dados no Firestore.
-    await addDoc(collection(db, 'transactions'), {
-      ...validatedFields.data,
+    // Correção: Salva na subcoleção de transações do usuário.
+    await addDoc(collection(db, 'users', validatedFields.data.userId, 'transactions'), {
+      type: validatedFields.data.type,
+      amount: validatedFields.data.amount,
+      description: validatedFields.data.description,
+      category: validatedFields.data.category,
       date: new Date().toISOString(),
     });
 
