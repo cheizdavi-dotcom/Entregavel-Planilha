@@ -108,7 +108,8 @@ export async function addGoalAction(formData: FormData) {
 const updateGoalSchema = z.object({
     userId: z.string().min(1),
     goalId: z.string().min(1),
-    currentValue: z.coerce.number().min(0),
+    currentValue: z.coerce.number().min(0, "O valor guardado não pode ser negativo."),
+    totalValue: z.coerce.number().positive(), // Adicionado para validação
 });
 
 export async function updateGoalAction(formData: FormData) {
@@ -118,6 +119,7 @@ export async function updateGoalAction(formData: FormData) {
         userId: formData.get('userId'),
         goalId: formData.get('goalId'),
         currentValue: formData.get('currentValue'),
+        totalValue: formData.get('totalValue'),
     };
 
     const validatedFields = updateGoalSchema.safeParse(values);
@@ -125,7 +127,12 @@ export async function updateGoalAction(formData: FormData) {
         return { errors: validatedFields.error.flatten().fieldErrors };
     }
 
-    const { userId, goalId, currentValue } = validatedFields.data;
+    const { userId, goalId, currentValue, totalValue } = validatedFields.data;
+
+    // Validação de segurança no servidor
+    if (currentValue > totalValue) {
+        return { errors: { currentValue: ['O valor guardado não pode ser maior que o valor total da meta.'] } };
+    }
 
     try {
         const goalRef = doc(db, 'users', userId, 'goals', goalId);
@@ -133,6 +140,7 @@ export async function updateGoalAction(formData: FormData) {
         revalidatePath('/');
         return { message: 'Goal updated successfully.' };
     } catch (e: any) {
+        console.error("Firebase Update Goal Error: ", e);
         return { errors: { _server: [e.message || 'Failed to update goal.'] } };
     }
 }

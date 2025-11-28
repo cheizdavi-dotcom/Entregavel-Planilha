@@ -42,8 +42,11 @@ import {
 import { Input } from '@/components/ui/input';
 
 const formSchema = z.object({
-  currentValue: z.string().refine(val => !isNaN(parseFloat(val.replace(',', '.'))) && parseFloat(val.replace(',', '.')) >= 0, { message: 'Valor inválido.'}),
+  currentValue: z.string()
+    .refine(val => /^\d+([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido. Use números e, se precisar, vírgula ou ponto para centavos.' })
+    .refine(val => parseFloat(val.replace(',', '.')) >= 0, { message: 'O valor não pode ser negativo.' }),
 });
+
 
 interface UpdateGoalDialogProps {
   open: boolean;
@@ -70,27 +73,43 @@ export function UpdateGoalDialog({ open, onOpenChange, goal }: UpdateGoalDialogP
   }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user || !goal) return;
+    if (!user || !goal) {
+        toast({ variant: 'destructive', title: 'Erro', description: 'Usuário ou meta não encontrados.'});
+        return;
+    };
     
     setIsSubmitting(true);
     try {
-      const currentValue = parseFloat(values.currentValue.replace(',', '.'));
+      const currentValueAsNumber = parseFloat(values.currentValue.replace(',', '.'));
       
+      if (currentValueAsNumber > goal.totalValue) {
+        form.setError('currentValue', { message: 'O valor guardado não pode ser maior que o total da meta.' });
+        setIsSubmitting(false);
+        return;
+      }
+
       const formData = new FormData();
       formData.append('userId', user.uid);
       formData.append('goalId', goal.id);
-      formData.append('currentValue', currentValue.toString());
+      formData.append('currentValue', String(currentValueAsNumber));
+      formData.append('totalValue', String(goal.totalValue)); // Enviar para validação no backend
 
       const result = await updateGoalAction(formData);
 
       if (result?.errors) {
-        toast({ variant: 'destructive', title: 'Erro ao Atualizar Meta', description: result.errors._server?.[0] });
+        // Mostra erros de validação do servidor no campo correspondente
+        if (result.errors.currentValue) {
+            form.setError('currentValue', { message: result.errors.currentValue[0] });
+        } else {
+            toast({ variant: 'destructive', title: 'Erro ao Atualizar Meta', description: result.errors._server?.[0] });
+        }
       } else {
         toast({ title: 'Sucesso!', description: 'Sua meta foi atualizada.', className: 'bg-primary text-primary-foreground' });
         handleClose();
       }
     } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Uh oh! Algo deu errado.', description: error.message });
+        console.error("Update Goal Submit Error:", error);
+        toast({ variant: 'destructive', title: 'Uh oh! Algo deu errado.', description: error.message || 'Ocorreu um erro inesperado.' });
     } finally {
         setIsSubmitting(false);
     }
