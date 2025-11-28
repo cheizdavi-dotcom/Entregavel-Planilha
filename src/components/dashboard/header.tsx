@@ -51,7 +51,9 @@ export default function Header({ currentDate, setCurrentDate }: HeaderProps) {
   const router = useRouter();
 
   const handleLogout = async () => {
-    await auth.signOut();
+    if (auth) {
+        await auth.signOut();
+    }
     router.push('/login');
   };
 
