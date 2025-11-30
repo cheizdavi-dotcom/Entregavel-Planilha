@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { addTransactionAction } from '@/app/actions';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { CalendarIcon, Plus } from 'lucide-react';
+import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { categoriesConfig } from '@/lib/categories';
 
@@ -42,12 +42,13 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
-
 const formSchema = z.object({
   type: z.enum(['income', 'expense'], { required_error: 'Selecione o tipo.' }),
-  amount: z.string().refine(val => !isNaN(parseFloat(val.replace(',', '.'))), { message: 'Valor inválido.'}),
+  amount: z.string()
+    .refine(val => /^\d+([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido. Use apenas números e vírgula/ponto para centavos.' })
+    .refine(val => parseFloat(val.replace(',', '.')) > 0, { message: 'O valor deve ser maior que zero.' }),
   description: z.string().min(2, { message: 'Descrição muito curta.' }).max(50),
-  category: z.string({ required_error: 'Selecione uma categoria.' }),
+  category: z.string({ required_error: 'Selecione uma categoria.' }).min(1, 'Selecione uma categoria.'),
   date: z.date({ required_error: 'A data é obrigatória.' }),
 });
 
@@ -72,7 +73,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialDate }: AddTra
     defaultValues: {
       type: 'expense',
       description: '',
-      amount: '0',
+      amount: '',
       date: initialDate,
     },
   });
@@ -82,19 +83,20 @@ export function AddTransactionDialog({ open, onOpenChange, initialDate }: AddTra
       form.reset({
         type: 'expense',
         description: '',
-        amount: '0',
-        category: '',
+        amount: '',
+        category: undefined,
         date: initialDate,
       });
     }
   }, [open, initialDate, form]);
 
   const transactionType = form.watch('type');
-  const availableCategories = Object.values(categoriesConfig).filter(cat => cat.type === transactionType);
-
+  
   React.useEffect(() => {
     form.resetField('category');
   }, [transactionType, form]);
+
+  const availableCategories = Object.values(categoriesConfig).filter(cat => cat.type === transactionType);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!user) {
@@ -109,14 +111,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialDate }: AddTra
     setIsSubmitting(true);
 
     try {
-        const amountAsString = values.amount.replace(',', '.');
-        const amountAsNumber = parseFloat(amountAsString);
-
-        if (isNaN(amountAsNumber) || amountAsNumber <= 0) {
-            form.setError('amount', { message: 'O valor deve ser um número positivo.' });
-            setIsSubmitting(false);
-            return;
-        }
+        const amountAsNumber = parseFloat(values.amount.replace(',', '.'));
 
         const formData = new FormData();
         formData.append('userId', user.uid);
@@ -124,21 +119,21 @@ export function AddTransactionDialog({ open, onOpenChange, initialDate }: AddTra
         formData.append('amount', amountAsNumber.toString());
         formData.append('description', values.description);
         formData.append('category', values.category);
-        formData.append('date', values.date.toISOString().split('T')[0]); // Envia apenas a data YYYY-MM-DD
+        formData.append('date', values.date.toISOString().split('T')[0]);
 
         const result = await addTransactionAction(formData);
 
         if (result?.errors) {
+            const serverError = result.errors._server?.[0];
             toast({
                 variant: 'destructive',
                 title: 'Erro ao Adicionar Transação',
-                description: result.errors._server?.[0] || 'Por favor, verifique os campos e tente novamente.',
+                description: serverError || 'Por favor, verifique os campos e tente novamente.',
             });
         } else {
             toast({
                 title: 'Sucesso!',
                 description: 'Sua transação foi adicionada.',
-                variant: 'default',
                 className: 'bg-primary text-primary-foreground'
             });
             onOpenChange(false);

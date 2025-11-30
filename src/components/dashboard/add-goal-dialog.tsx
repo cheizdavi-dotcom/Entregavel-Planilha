@@ -28,9 +28,13 @@ import {
 import { Input } from '@/components/ui/input';
 
 const formSchema = z.object({
-  name: z.string().min(2, { message: 'Nome muito curto.' }).max(50),
-  totalValue: z.string().refine(val => /^\d+([,.]\d{1,2})?$/.test(val) && parseFloat(val.replace(',', '.')) > 0, { message: 'Valor total inválido ou não é positivo.'}),
-  currentValue: z.string().refine(val => /^\d+([,.]\d{1,2})?$/.test(val) && parseFloat(val.replace(',', '.')) >= 0, { message: 'Valor atual inválido.'}),
+  name: z.string().min(2, { message: 'O nome da meta é muito curto.' }).max(50),
+  totalValue: z.string()
+    .refine(val => /^\d+([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido. Use apenas números e vírgula/ponto para centavos.' })
+    .refine(val => parseFloat(val.replace(',', '.')) > 0, { message: 'O valor total deve ser maior que zero.' }),
+  currentValue: z.string()
+    .refine(val => /^\d+([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido. Use apenas números e vírgula/ponto para centavos.' })
+    .refine(val => parseFloat(val.replace(',', '.')) >= 0, { message: 'O valor atual não pode ser negativo.' }),
 });
 
 
@@ -65,6 +69,12 @@ export function AddGoalDialog({ open, onOpenChange }: AddGoalDialogProps) {
       const totalValue = parseFloat(values.totalValue.replace(',', '.'));
       const currentValue = parseFloat(values.currentValue.replace(',', '.'));
 
+      if (currentValue > totalValue) {
+        form.setError('currentValue', { message: 'O valor guardado não pode ser maior que o valor total.' });
+        setIsSubmitting(false);
+        return;
+      }
+
       const formData = new FormData();
       formData.append('userId', user.uid);
       formData.append('name', values.name);
@@ -74,7 +84,7 @@ export function AddGoalDialog({ open, onOpenChange }: AddGoalDialogProps) {
       const result = await addGoalAction(formData);
 
       if (result?.errors) {
-        toast({ variant: 'destructive', title: 'Erro ao Adicionar Meta', description: result.errors._server?.[0] });
+        toast({ variant: 'destructive', title: 'Erro ao Adicionar Meta', description: result.errors._server?.[0] || 'Verifique os dados e tente novamente.' });
       } else {
         toast({ title: 'Sucesso!', description: 'Sua meta foi adicionada.', className: 'bg-primary text-primary-foreground' });
         form.reset();
@@ -141,11 +151,11 @@ export function AddGoalDialog({ open, onOpenChange }: AddGoalDialogProps) {
               name="currentValue"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Valor Já Guardado</FormLabel>
+                  <FormLabel>Valor Já Guardado (Opcional)</FormLabel>
                   <FormControl>
                      <div className="relative">
                       <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground">R$</span>
-                      <Input type="text" placeholder="1.500,00" {...field} className="pl-10" disabled={isSubmitting}/>
+                      <Input type="text" placeholder="0,00" {...field} className="pl-10" disabled={isSubmitting}/>
                     </div>
                   </FormControl>
                   <FormMessage />
