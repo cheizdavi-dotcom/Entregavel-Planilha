@@ -36,7 +36,7 @@ const SkeletonRow = () => (
     <TableRow>
         <TableCell className="py-4">
             <div className="flex items-center gap-3">
-                <Skeleton className="h-8 w-8 rounded-full" />
+                <Skeleton className="h-10 w-10 rounded-full" />
                 <div className='flex flex-col gap-1'>
                     <Skeleton className="h-5 w-24" />
                     <Skeleton className="h-3 w-16" />
@@ -91,12 +91,12 @@ export default function TransactionList({ transactions, loading }: TransactionLi
                 transactions.map((t) => (
                     <TableRow key={t.id}>
                     <TableCell className='py-4'>
-                        <div className="flex items-center gap-3">
-                            <div className={`flex h-8 w-8 items-center justify-center rounded-full ${t.type === 'income' ? 'bg-primary/10' : 'bg-destructive/10'}`}>
+                        <div className="flex items-center gap-4">
+                            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${t.type === 'income' ? 'bg-primary/10' : 'bg-destructive/10'}`}>
                                 {t.type === 'income' ? (
-                                    <ArrowUp className="h-4 w-4 text-primary" />
+                                    <ArrowUp className="h-5 w-5 text-primary" />
                                 ) : (
-                                    <ArrowDown className="h-4 w-4 text-destructive" />
+                                    <ArrowDown className="h-5 w-5 text-destructive" />
                                 )}
                             </div>
                             <div className='flex flex-col'>

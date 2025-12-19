@@ -160,7 +160,7 @@ export default function DashboardPage() {
   }, [prevMonthTransactions]);
 
   const MainContent = () => (
-    <div className="flex flex-col gap-6 p-4 pt-6 md:p-8">
+    <div className="flex flex-col gap-6 p-4 pt-8 md:p-8 md:pt-6">
       <Header currentDate={currentDate} setCurrentDate={setCurrentDate} />
       
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
