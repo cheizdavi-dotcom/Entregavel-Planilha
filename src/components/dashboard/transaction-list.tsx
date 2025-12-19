@@ -18,7 +18,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/utils';
 import type { Transaction } from '@/types';
-import { ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { ArrowUp, ArrowDown } from 'lucide-react';
 import { categoriesConfig } from '@/lib/categories';
 import { Skeleton } from '../ui/skeleton';
 
@@ -34,17 +34,17 @@ const CategoryIcon = ({ category, className }: { category: string; className?: s
 
 const SkeletonRow = () => (
     <TableRow>
-        <TableCell>
-            <div className="flex items-center gap-2">
-                <Skeleton className="h-5 w-5 rounded-full" />
-                <Skeleton className="h-5 w-24" />
+        <TableCell className="py-4">
+            <div className="flex items-center gap-3">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div className='flex flex-col gap-1'>
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-3 w-16" />
+                </div>
             </div>
         </TableCell>
-        <TableCell>
+        <TableCell className="hidden md:table-cell">
             <Skeleton className="h-5 w-20" />
-        </TableCell>
-        <TableCell>
-            <Skeleton className="h-5 w-16" />
         </TableCell>
         <TableCell className="text-right">
             <Skeleton className="h-5 w-20 ml-auto" />
@@ -74,8 +74,7 @@ export default function TransactionList({ transactions, loading }: TransactionLi
             <TableHeader>
               <TableRow>
                 <TableHead>Descrição</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Data</TableHead>
+                <TableHead className="hidden md:table-cell">Categoria</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
               </TableRow>
             </TableHeader>
@@ -91,31 +90,36 @@ export default function TransactionList({ transactions, loading }: TransactionLi
               ) : hasTransactions ? (
                 transactions.map((t) => (
                     <TableRow key={t.id}>
-                    <TableCell>
+                    <TableCell className='py-4'>
                         <div className="flex items-center gap-3">
-                            {t.type === 'income' ? (
-                                <ArrowUpCircle className="h-5 w-5 text-primary" />
-                            ) : (
-                                <ArrowDownCircle className="h-5 w-5 text-destructive" />
-                            )}
-                            <span className="font-medium">{t.description}</span>
+                            <div className={`flex h-8 w-8 items-center justify-center rounded-full ${t.type === 'income' ? 'bg-primary/10' : 'bg-destructive/10'}`}>
+                                {t.type === 'income' ? (
+                                    <ArrowUp className="h-4 w-4 text-primary" />
+                                ) : (
+                                    <ArrowDown className="h-4 w-4 text-destructive" />
+                                )}
+                            </div>
+                            <div className='flex flex-col'>
+                                <span className="font-medium text-base">{t.description}</span>
+                                <span className="text-sm text-muted-foreground md:hidden">{t.category}</span>
+                            </div>
                         </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                         <Badge variant="outline" className="flex w-fit items-center gap-1.5 py-1 px-2">
                             <CategoryIcon category={t.category} className="h-3.5 w-3.5" />
                             {t.category}
                         </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
-                        {new Date(t.date).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'})}
-                    </TableCell>
                     <TableCell
-                        className={`text-right font-semibold ${
-                        t.type === 'income' ? 'text-primary' : 'text-destructive'
+                        className={`text-right font-semibold text-base ${
+                        t.type === 'income' ? 'text-primary' : 'text-foreground'
                         }`}
                     >
                         {t.type === 'expense' && '- '}{formatCurrency(t.amount)}
+                        <div className='text-xs font-normal text-muted-foreground'>
+                            {new Date(t.date).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'})}
+                        </div>
                     </TableCell>
                     </TableRow>
                 ))

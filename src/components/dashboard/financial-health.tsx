@@ -33,21 +33,21 @@ const SkeletonLoader = () => (
                 <Skeleton className="h-4 w-20" />
                 <Skeleton className="h-4 w-24" />
             </div>
-            <Skeleton className="h-2 w-full" />
+            <Skeleton className="h-3 w-full rounded-full" />
         </div>
         <div className='space-y-2'>
             <div className='flex justify-between items-baseline'>
                 <Skeleton className="h-4 w-24" />
                 <Skeleton className="h-4 w-16" />
             </div>
-            <Skeleton className="h-2 w-full" />
+            <Skeleton className="h-3 w-full rounded-full" />
         </div>
         <div className='space-y-2'>
             <div className='flex justify-between items-baseline'>
                 <Skeleton className="h-4 w-28" />
                 <Skeleton className="h-4 w-20" />
             </div>
-            <Skeleton className="h-2 w-full" />
+            <Skeleton className="h-3 w-full rounded-full" />
         </div>
     </div>
 );
@@ -61,6 +61,8 @@ const EmptyState = () => (
 
 
 export default function FinancialHealth({ transactions, totalIncome, loading }: FinancialHealthProps) {
+  const [progressValues, setProgressValues] = React.useState({ needs: 0, wants: 0, savings: 0 });
+
   const { needs, wants, savings } = React.useMemo(() => {
     const expenses = transactions.filter((t) => t.type === 'expense');
     return expenses.reduce(
@@ -81,7 +83,23 @@ export default function FinancialHealth({ transactions, totalIncome, loading }: 
   const wantsPercentage = getPercentage(wants);
   const savingsPercentage = getPercentage(savings);
 
-  const ProgressBar = ({ label, percentage, target, color, value }: { label: string, percentage: number, target: number, color: string, value: number }) => {
+  React.useEffect(() => {
+    if (!loading) {
+        const timer = setTimeout(() => {
+            setProgressValues({
+                needs: needsPercentage,
+                wants: wantsPercentage,
+                savings: savingsPercentage,
+            });
+        }, 300); // Small delay to start animation after render
+        return () => clearTimeout(timer);
+    } else {
+        // Reset on loading
+        setProgressValues({ needs: 0, wants: 0, savings: 0 });
+    }
+}, [loading, needsPercentage, wantsPercentage, savingsPercentage]);
+
+  const ProgressBar = ({ label, percentage, target, color, value, animatedValue }: { label: string, percentage: number, target: number, color: string, value: number, animatedValue: number }) => {
     const isOver = percentage > target;
     return (
         <div className='space-y-2'>
@@ -92,7 +110,7 @@ export default function FinancialHealth({ transactions, totalIncome, loading }: 
                     <span className='ml-2 text-xs text-muted-foreground'>({percentage.toFixed(0)}% de {target}%)</span>
                 </p>
             </div>
-            <Progress value={percentage} indicatorClassName={isOver ? 'bg-destructive' : color} className="h-2"/>
+            <Progress value={animatedValue} indicatorClassName={isOver ? 'bg-destructive' : color} className="h-3 rounded-full" />
         </div>
     );
   }
@@ -130,6 +148,7 @@ export default function FinancialHealth({ transactions, totalIncome, loading }: 
                 target={ruleConfig.needs.target}
                 color={ruleConfig.needs.color}
                 value={needs}
+                animatedValue={progressValues.needs}
             />
              <ProgressBar 
                 label={ruleConfig.wants.label}
@@ -137,6 +156,7 @@ export default function FinancialHealth({ transactions, totalIncome, loading }: 
                 target={ruleConfig.wants.target}
                 color={ruleConfig.wants.color}
                 value={wants}
+                animatedValue={progressValues.wants}
             />
              <ProgressBar 
                 label={ruleConfig.savings.label}
@@ -144,6 +164,7 @@ export default function FinancialHealth({ transactions, totalIncome, loading }: 
                 target={ruleConfig.savings.target}
                 color={ruleConfig.savings.color}
                 value={savings}
+                animatedValue={progressValues.savings}
             />
           </div>
         )}

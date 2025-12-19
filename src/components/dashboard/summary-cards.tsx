@@ -51,7 +51,7 @@ const SummaryCard = ({ title, value, icon, variant = 'default', loading, compari
 
 
     return (
-        <Card className="glass-dark">
+        <Card className="glass-dark transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
                 <div className={iconColor}>
@@ -59,7 +59,7 @@ const SummaryCard = ({ title, value, icon, variant = 'default', loading, compari
                 </div>
             </CardHeader>
             <CardContent>
-                <div className={`text-2xl md:text-3xl font-bold ${valueColor}`}>{formatCurrency(value)}</div>
+                <div className={`text-3xl font-bold tracking-tight ${valueColor}`}>{formatCurrency(value)}</div>
                  <p className="text-xs text-muted-foreground flex items-center gap-1">
                     {comparison !== undefined && (
                       isPositive ? <ArrowUp className="h-3 w-3 text-primary" /> : <ArrowDown className="h-3 w-3 text-destructive" />

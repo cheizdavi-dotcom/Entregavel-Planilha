@@ -163,7 +163,7 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6 p-4 pt-6 md:p-8">
       <Header currentDate={currentDate} setCurrentDate={setCurrentDate} />
       
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         <SummaryCards balance={balance} income={income} expenses={expenses} prevMonthSavings={prevMonthSavings} loading={loading}/>
       </div>
       
