@@ -1,160 +1,115 @@
 'use client';
 
-import * as React from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/hooks/use-auth';
-import type { Goal } from '@/types';
-import { formatCurrency } from '@/lib/utils';
-
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { formatCurrency } from '@/lib/utils';
+import type { Goal } from '@/types';
+import { useAuth } from '@/hooks/use-auth';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import * as React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Target, Trophy, Plus } from 'lucide-react';
 
 interface GoalsCardProps {
-  loading: boolean;
-  onAddGoalClick: () => void;
-  onGoalClick: (goal: Goal) => void;
+    loading: boolean;
+    onAddGoalClick: () => void;
+    onGoalClick: (goal: Goal) => void;
 }
 
-const goalIcons: { [key: string]: string } = {
-    default: '🎯',
-    viagem: '✈️',
-    carro: '🚗',
-    casa: '🏠',
-    iphone: '📱',
-    macbook: '💻',
-    investimento: '📈',
-    emergência: '🆘',
-};
+interface GoalItemProps {
+    goal: Goal;
+    onClick: (goal: Goal) => void;
+}
 
-const findIconForGoal = (name: string): string => {
-    const lowerName = name.toLowerCase();
-    for (const key in goalIcons) {
-        if (lowerName.includes(key)) {
-            return goalIcons[key];
-        }
-    }
-    return goalIcons.default;
-};
-
-const SkeletonLoader = () => (
-    <div className="space-y-4">
-        <div className="flex items-center gap-4">
-            <Skeleton className="h-6 w-6 rounded-full" />
-            <div className="w-full space-y-2">
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-2 w-full" />
-            </div>
-        </div>
-        <div className="flex items-center gap-4">
-            <Skeleton className="h-6 w-6 rounded-full" />
-            <div className="w-full space-y-2">
-                <Skeleton className="h-4 w-1/2" />
-                <Skeleton className="h-2 w-full" />
-            </div>
-        </div>
-    </div>
-);
-
-const EmptyState = () => (
-  <div className="flex h-full flex-col items-center justify-center text-center text-muted-foreground p-4">
-    <Target className="h-10 w-10 mb-4 text-primary" />
-    <p className="font-semibold">Crie sua primeira meta!</p>
-    <p className="text-sm">Defina objetivos para suas economias e acompanhe seu progresso.</p>
-  </div>
-);
-
-const GoalItem = ({ goal, onClick }: { goal: Goal, onClick: () => void }) => {
-    const percentage = goal.totalValue > 0 ? (goal.currentValue / goal.totalValue) * 100 : 0;
-    const isCompleted = percentage >= 100;
-
-    if (isCompleted) {
-        return (
-            <div className="flex items-center gap-3 rounded-lg bg-primary/10 p-3 border border-primary/20">
-                <Trophy className="h-6 w-6 text-primary" />
-                <div className="flex-1">
-                    <p className="font-bold text-primary">{goal.name}</p>
-                    <p className="text-sm font-semibold text-primary/80">Conquista Desbloqueada!</p>
-                </div>
-                <p className="text-sm font-bold text-primary">{formatCurrency(goal.totalValue)}</p>
-            </div>
-        )
-    }
-
+const GoalItem: React.FC<GoalItemProps> = ({ goal, onClick }) => {
+    const percentage = (goal.currentAmount / goal.targetAmount) * 100;
+  
     return (
-        <div 
-            className="group space-y-2 rounded-lg p-3 transition-all duration-200 cursor-pointer hover:bg-white/5 hover:scale-[1.02] hover:border hover:border-primary/50"
-            onClick={onClick}
-        >
-            <div className="flex justify-between items-center">
-                <p className="font-semibold text-sm flex items-center gap-2">
-                    <span>{findIconForGoal(goal.name)}</span>
-                    {goal.name}
-                </p>
-                 <span className="text-sm font-bold w-12 text-right">{percentage.toFixed(0)}%</span>
-            </div>
-            <div className="space-y-1">
-                <Progress value={percentage} indicatorClassName="bg-primary" className="h-2" />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                    <span className="font-bold text-foreground">{formatCurrency(goal.currentValue)}</span>
-                    <span>de {formatCurrency(goal.totalValue)}</span>
-                </div>
-            </div>
+      <div key={goal.id} className="mb-4 last:mb-0 cursor-pointer" onClick={() => onClick(goal)}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium">{goal.description}</h3>
+          <span className="text-xs text-muted-foreground">
+            {formatCurrency(goal.currentAmount)} / {formatCurrency(goal.targetAmount)}
+          </span>
         </div>
+        <Progress value={percentage} className="h-2 mt-1" />
+      </div>
     );
 };
 
-export default function GoalsCard({ loading: initialLoading, onAddGoalClick, onGoalClick }: GoalsCardProps) {
-  const { user } = useAuth();
-  const [goals, setGoals] = React.useState<Goal[]>([]);
-  const [loading, setLoading] = React.useState(true);
+const EmptyState = () => (
+    <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-4">
+        <p className="font-semibold">Defina Objetivos Financeiros</p>
+        <p className="text-sm">Para acompanhar seu progresso e manter o foco.</p>
+    </div>
+);
 
-  React.useEffect(() => {
-    if (user?.uid) {
-      if (!db) return;
-      const q = query(collection(db, 'users', user.uid, 'goals'), orderBy('totalValue', 'desc'));
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const userGoals: Goal[] = [];
-        snapshot.forEach((doc) => {
-          userGoals.push({ id: doc.id, ...doc.data() } as Goal);
-        });
-        setGoals(userGoals);
-        setLoading(false);
-      }, (error) => {
-        console.error("Error fetching goals: ", error);
-        setLoading(false);
-      });
-      return () => unsubscribe();
-    } else if (!user) {
-        setLoading(false);
-    }
-  }, [user]);
+const SkeletonLoader = () => (
+    <div className="space-y-4">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-2 w-full" />
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-2 w-full" />
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-2 w-full" />
+    </div>
+);
 
-  const isLoading = initialLoading || loading;
+const GoalsCard: React.FC<GoalsCardProps> = ({ loading, onAddGoalClick, onGoalClick }) => {
+    const { user } = useAuth();
+    const [goals, setGoals] = React.useState<Goal[]>([]);
 
-  return (
-    <Card className="glass-dark h-full flex flex-col">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Meus Objetivos</CardTitle>
-          <CardDescription>Acompanhe seu progresso</CardDescription>
-        </div>
-        <Button size="sm" onClick={onAddGoalClick}>Nova Meta</Button>
-      </CardHeader>
-      <CardContent className="flex-1 flex flex-col justify-center">
-        {isLoading ? (
-          <SkeletonLoader />
-        ) : goals.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <div className="space-y-4">
-            {goals.map(goal => <GoalItem key={goal.id} goal={goal} onClick={() => onGoalClick(goal)} />)}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
+    React.useEffect(() => {
+        if (user?.uid && db) {
+            const q = query(
+                collection(db, 'users', user.uid, 'goals'),
+                where('targetAmount', '>', 0) //Simple way to ensure only valid goals are displayed (avoid div by zero)
+            );
+
+            const unsubscribe = onSnapshot(q, (querySnapshot) => {
+                const userGoals: Goal[] = [];
+                querySnapshot.forEach((doc) => {
+                    userGoals.push({ id: doc.id, ...doc.data() } as Goal);
+                });
+                setGoals(userGoals);
+            });
+
+            return () => unsubscribe();
+        }
+    }, [user]);
+
+    const hasGoals = goals.length > 0;
+
+    return (
+        <Card className="glass-dark">
+            <CardHeader>
+                <CardTitle>Metas Financeiras</CardTitle>
+                <CardDescription>Acompanhe seu progresso.</CardDescription>
+            </CardHeader>
+            <CardContent className="relative">
+                {loading ? (
+                    <SkeletonLoader />
+                ) : hasGoals ? (
+                    <div className="space-y-4">
+                        {goals.map((goal) => (
+                            <GoalItem key={goal.id} goal={goal} onClick={onGoalClick} />
+                        ))}
+                    </div>
+                ) : (
+                    <EmptyState />
+                )}
+                <Button size="sm" className="absolute bottom-2 right-2" onClick={onAddGoalClick}><Plus className="mr-2 h-4 w-4" /> Adicionar Meta</Button>
+            </CardContent>
+        </Card>
+    );
+};
+
+export default GoalsCard;
