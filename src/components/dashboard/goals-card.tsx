@@ -13,7 +13,7 @@ import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/utils';
 import type { Goal } from '@/types';
 import { useAuth } from '@/hooks/use-auth';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import * as React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -30,14 +30,14 @@ interface GoalItemProps {
 }
 
 const GoalItem: React.FC<GoalItemProps> = ({ goal, onClick }) => {
-    const percentage = (goal.currentAmount / goal.targetAmount) * 100;
+    const percentage = goal.totalValue > 0 ? (goal.currentValue / goal.totalValue) * 100 : 0;
   
     return (
       <div key={goal.id} className="mb-4 last:mb-0 cursor-pointer" onClick={() => onClick(goal)}>
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium">{goal.description}</h3>
+          <h3 className="text-sm font-medium">{goal.name}</h3>
           <span className="text-xs text-muted-foreground">
-            {formatCurrency(goal.currentAmount)} / {formatCurrency(goal.targetAmount)}
+            {formatCurrency(goal.currentValue)} / {formatCurrency(goal.totalValue)}
           </span>
         </div>
         <Progress value={percentage} className="h-2 mt-1" />
@@ -45,33 +45,37 @@ const GoalItem: React.FC<GoalItemProps> = ({ goal, onClick }) => {
     );
 };
 
-const EmptyState = () => (
+const EmptyState = ({ onAddGoalClick }: { onAddGoalClick: () => void }) => (
     <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-4">
         <p className="font-semibold">Defina Objetivos Financeiros</p>
-        <p className="text-sm">Para acompanhar seu progresso e manter o foco.</p>
+        <p className="text-sm mb-4">Para acompanhar seu progresso e manter o foco.</p>
+        <Button size="sm" onClick={onAddGoalClick}><Plus className="mr-2 h-4 w-4" /> Adicionar Meta</Button>
     </div>
 );
 
 const SkeletonLoader = () => (
-    <div className="space-y-4">
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-2 w-full" />
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-2 w-full" />
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-2 w-full" />
+    <div className="space-y-4 p-4">
+        <div className="space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-2 w-full" />
+        </div>
+        <div className="space-y-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-2 w-full" />
+        </div>
     </div>
 );
 
 const GoalsCard: React.FC<GoalsCardProps> = ({ loading, onAddGoalClick, onGoalClick }) => {
     const { user } = useAuth();
     const [goals, setGoals] = React.useState<Goal[]>([]);
+    const [internalLoading, setInternalLoading] = React.useState(true);
 
     React.useEffect(() => {
         if (user?.uid && db) {
+            setInternalLoading(true);
             const q = query(
-                collection(db, 'users', user.uid, 'goals'),
-                where('targetAmount', '>', 0) //Simple way to ensure only valid goals are displayed (avoid div by zero)
+                collection(db, 'users', user.uid, 'goals')
             );
 
             const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -80,33 +84,41 @@ const GoalsCard: React.FC<GoalsCardProps> = ({ loading, onAddGoalClick, onGoalCl
                     userGoals.push({ id: doc.id, ...doc.data() } as Goal);
                 });
                 setGoals(userGoals);
+                setInternalLoading(false);
+            }, () => {
+                setInternalLoading(false);
             });
 
             return () => unsubscribe();
+        } else if (!user) {
+            setInternalLoading(false);
         }
     }, [user]);
 
+    const isLoading = loading || internalLoading;
     const hasGoals = goals.length > 0;
 
     return (
-        <Card className="glass-dark">
+        <Card className="glass-dark h-full flex flex-col">
             <CardHeader>
                 <CardTitle>Metas Financeiras</CardTitle>
-                <CardDescription>Acompanhe seu progresso.</CardDescription>
+                <CardDescription>Acompanhe seu progresso para alcançar seus sonhos.</CardDescription>
             </CardHeader>
-            <CardContent className="relative">
-                {loading ? (
+            <CardContent className="flex-1 flex flex-col justify-center">
+                {isLoading ? (
                     <SkeletonLoader />
                 ) : hasGoals ? (
                     <div className="space-y-4">
                         {goals.map((goal) => (
                             <GoalItem key={goal.id} goal={goal} onClick={onGoalClick} />
                         ))}
+                         <Button variant="outline" size="sm" className="w-full mt-4" onClick={onAddGoalClick}>
+                            <Plus className="mr-2 h-4 w-4" /> Adicionar Nova Meta
+                        </Button>
                     </div>
                 ) : (
-                    <EmptyState />
+                    <EmptyState onAddGoalClick={onAddGoalClick} />
                 )}
-                <Button size="sm" className="absolute bottom-2 right-2" onClick={onAddGoalClick}><Plus className="mr-2 h-4 w-4" /> Adicionar Meta</Button>
             </CardContent>
         </Card>
     );
