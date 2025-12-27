@@ -99,7 +99,7 @@ export default function MonthlyOverviewChart({ transactions, loading, currentDat
         {!hasData ? (
           <EmptyState />
         ) : (
-          <ResponsiveContainer width="100%" height={280}>
+          <ChartContainer config={chartConfig} className='h-[280px] w-full'>
             <AreaChart 
                 accessibilityLayer 
                 data={data} 
@@ -140,7 +140,7 @@ export default function MonthlyOverviewChart({ transactions, loading, currentDat
                 />
               <Tooltip
                 cursor={true}
-                content={<ChartTooltipContent indicator="dot" formatter={(value, name, props) => {
+                content={<ChartTooltipContent indicator="dot" formatter={(value, name) => {
                     if (name === 'income') return [<span className="font-inter font-bold">{formatCurrency(Number(value))}</span>, "Receita"];
                     if (name === 'expense') return [<span className="font-inter font-bold">{formatCurrency(Number(value))}</span>, "Despesa"];
                     return [value, name];
@@ -149,7 +149,7 @@ export default function MonthlyOverviewChart({ transactions, loading, currentDat
               <Area dataKey="income" type="monotone" fill="url(#fillIncome)" stroke="#00ff88" strokeWidth={3} dot={false} />
               <Area dataKey="expense" type="monotone" fill="url(#fillExpense)" stroke="hsl(var(--chart-2))" strokeWidth={3} dot={false} />
             </AreaChart>
-          </ResponsiveContainer>
+          </ChartContainer>
         )}
       </CardContent>
     </Card>

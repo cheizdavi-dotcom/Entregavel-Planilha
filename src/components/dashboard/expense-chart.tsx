@@ -110,7 +110,7 @@ export default function ExpenseChart({ transactions, loading }: ExpenseChartProp
                 content={
                   <ChartTooltipContent 
                     hideLabel 
-                    formatter={(value, name) => [`${(Number(value) / totalExpenses * 100).toFixed(0)}%`, name]}
+                    formatter={(value) => `${(Number(value) / totalExpenses * 100).toFixed(0)}%`}
                   />
                 } 
                />
