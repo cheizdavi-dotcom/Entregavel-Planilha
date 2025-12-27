@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { collection, onSnapshot, query, orderBy, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, where, Unsubscribe } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import type { Transaction, Goal } from '@/types';
@@ -81,50 +81,63 @@ export default function DashboardPage() {
       
       setLoading(true);
 
-      const firstDay = startOfMonth(currentDate);
-      const lastDay = endOfMonth(currentDate);
-      
-      const q = query(
-        collection(db, 'users', user.uid, 'transactions'),
-        where('date', '>=', firstDay.toISOString()),
-        where('date', '<=', lastDay.toISOString()),
-        orderBy('date', 'desc')
-      );
-      
-      const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const userTransactions: Transaction[] = [];
-        querySnapshot.forEach((doc) => {
-          userTransactions.push({ id: doc.id, ...doc.data() } as Transaction);
+      let unsubscribe: Unsubscribe | null = null;
+      let unsubscribePrev: Unsubscribe | null = null;
+
+      try {
+        const firstDay = startOfMonth(currentDate);
+        const lastDay = endOfMonth(currentDate);
+        
+        const q = query(
+          collection(db, 'users', user.uid, 'transactions'),
+          where('date', '>=', firstDay.toISOString()),
+          where('date', '<=', lastDay.toISOString()),
+          orderBy('date', 'desc')
+        );
+        
+        unsubscribe = onSnapshot(q, (querySnapshot) => {
+          const userTransactions: Transaction[] = [];
+          querySnapshot.forEach((doc) => {
+            userTransactions.push({ id: doc.id, ...doc.data() } as Transaction);
+          });
+          setTransactions(userTransactions);
+          setLoading(false);
+        }, (error) => {
+          console.error("Error fetching transactions: ", error);
+          setLoading(false);
         });
-        setTransactions(userTransactions);
-        setLoading(false);
-      }, (error) => {
-        console.error("Error fetching transactions: ", error);
-        setLoading(false);
-      });
 
-      // Fetch previous month's transactions for comparison
-      const prevMonth = subMonths(currentDate, 1);
-      const prevMonthFirstDay = startOfMonth(prevMonth);
-      const prevMonthLastDay = endOfMonth(prevMonth);
+        // Fetch previous month's transactions for comparison
+        const prevMonth = subMonths(currentDate, 1);
+        const prevMonthFirstDay = startOfMonth(prevMonth);
+        const prevMonthLastDay = endOfMonth(prevMonth);
 
-      const pq = query(
-        collection(db, 'users', user.uid, 'transactions'),
-        where('date', '>=', prevMonthFirstDay.toISOString()),
-        where('date', '<=', prevMonthLastDay.toISOString())
-      );
+        const pq = query(
+          collection(db, 'users', user.uid, 'transactions'),
+          where('date', '>=', prevMonthFirstDay.toISOString()),
+          where('date', '<=', prevMonthLastDay.toISOString())
+        );
 
-      const unsubscribePrev = onSnapshot(pq, (querySnapshot) => {
-        const prevTransactions: Transaction[] = [];
-        querySnapshot.forEach((doc) => {
-          prevTransactions.push(doc.data() as Transaction);
+        unsubscribePrev = onSnapshot(pq, (querySnapshot) => {
+          const prevTransactions: Transaction[] = [];
+          querySnapshot.forEach((doc) => {
+            prevTransactions.push(doc.data() as Transaction);
+          });
+          setPrevMonthTransactions(prevTransactions);
         });
-        setPrevMonthTransactions(prevTransactions);
-      });
+
+      } catch (error) {
+        console.error("Error setting up Firestore listeners: ", error);
+        setLoading(false);
+      }
       
       return () => {
-        unsubscribe();
-        unsubscribePrev();
+        if (unsubscribe) {
+          unsubscribe();
+        }
+        if (unsubscribePrev) {
+          unsubscribePrev();
+        }
       };
     } else if (!user) {
         setLoading(false);
