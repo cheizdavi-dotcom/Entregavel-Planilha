@@ -43,71 +43,52 @@ const availableCategories = (type: 'income' | 'expense') =>
 function parseStatement(text: string): ParsedTransaction[] {
     const lines = text.split('\n').filter(line => line.trim() !== '');
     const transactions: ParsedTransaction[] = [];
-    const uuidRegex = /^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$/i; // Regex to match UUIDs
+    
+    // Regex aprimorado para capturar múltiplos formatos
+    // Formato 1: DD/MM/YYYY [espaço] -VALOR,CENTAVOS [espaço] DESCRIÇÃO
+    // Formato 2: DD/MM/YYYY [espaço] VALOR,CENTAVOS [espaço] DESCRIÇÃO
+    // Formato 3: DD MMM [espaço] DESCRIÇÃO [espaço] - [espaço] R$ VALOR.CENTAVOS
+    const transactionRegex = /(\d{2}\/\d{2}(?:\/\d{4})?)\s+(-?[\d.,]+)\s+(.*)/;
+    const oldTransactionRegex = /(\d{1,2} [A-Z]{3})\s+(.*?)\s+-\s+R\$\s*([\d,]+\.\d{2})/;
+
 
     lines.forEach(line => {
-        // Skip lines that are just UUIDs or contain irrelevant info
-        if (uuidRegex.test(line.trim()) || line.toLowerCase().includes('agência') || line.toLowerCase().includes('nu pagamentos')) {
-            return;
-        }
-
-        const transactionRegex = /(\d{2}\/\d{2}(?:\/\d{4})?)\s+(-?[\d.,]+(?:,\d{2})?)\s+(.*)/;
-        const oldTransactionRegex = /(\d{1,2} [A-Z]{3})\s+(.*?)\s+-\s+R\$\s*([\d,]+\.\d{2})/;
-
-        let description = line.trim();
         let match = line.match(transactionRegex);
-
+        
         if (match) {
-            const [_, dateStr, valueStr, desc] = match;
+            const [_, dateStr, valueStr, rawDescription] = match;
+
+            // Tratamento da Data
             const dateParts = dateStr.split('/');
             const day = parseInt(dateParts[0], 10);
             const month = parseInt(dateParts[1], 10) - 1;
             let year = dateParts.length === 3 ? parseInt(dateParts[2], 10) : new Date().getFullYear();
             if (year < 2000) year += 2000;
-            
-            const amount = parseFloat(valueStr.replace(/\./g, '').replace(',', '.'));
 
-            if (!isNaN(day) && !isNaN(month) && !isNaN(amount)) {
+            // Tratamento do Valor
+            const amount = parseFloat(valueStr.replace(/\./g, '').replace(',', '.'));
+            
+            // Tratamento da Descrição
+            let description = rawDescription.trim()
+                .replace(/Compra no débito - /i, '')
+                .replace(/pagamento em debito - /i, '')
+                .trim();
+
+
+            if (!isNaN(day) && !isNaN(month) && !isNaN(amount) && description) {
                 transactions.push({
                     date: new Date(year, month, day).toISOString(),
                     amount: Math.abs(amount),
-                    description: desc.trim() || 'Transação Importada',
+                    description,
                     type: amount >= 0 ? 'income' : 'expense',
                     category: ''
                 });
             }
-        } else {
-             const oldMatch = line.match(oldTransactionRegex);
-             if (oldMatch) {
-                // Handle old format
-             } else if (description) {
-                // Fallback for lines that might be descriptions for a previous transaction
-                // (Currently not implemented, as it can be complex)
-             }
-        }
-    });
-    
-    // Clean up descriptions by merging multi-line entries
-    const mergedTransactions: ParsedTransaction[] = [];
-    let tempDescription = '';
-
-    transactions.forEach((trans, index) => {
-        // A simple heuristic: if a description is very generic like 'Compra no débito',
-        // and the next line doesn't look like a new transaction, it might be a multi-line description.
-        // This part is complex, for now we will just use the single line description.
-        
-        // This Regex cleans up any remaining UUIDs or strange codes from the description
-        const cleanedDescription = trans.description
-            .replace(/[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}/i, '')
-            .replace(/agência: \d+ conta: \d+/i, '')
-            .replace(/nu pagamentos.*/i, '')
-            .trim();
-
-        mergedTransactions.push({ ...trans, description: cleanedDescription });
+        } 
+        // Adicionar outros regex aqui se necessário
     });
 
-
-    return mergedTransactions;
+    return transactions;
 }
 
 const exampleText = `COMO FUNCIONA:
@@ -115,9 +96,9 @@ Copie o texto da sua fatura ou extrato (do app do seu banco ou do PDF) e cole no
 O sistema tentará encontrar transações em diversos formatos.
 
 Exemplos de formatos aceitos:
-26/12/2025 -15,50 Compra no débito - Supermercado
-26/12/2025 1200,00 Transferência Recebida de PIX
-25 DEZ   PAGAMENTO EM DEBITO - UBER TRIP - R$ 20,45
+26/12/2025 -15,50 Uber
+26/12/2025 1200,00 Salário
+25 DEZ PAGAMENTO EM DEBITO - UBER TRIP - R$ 20,45
 `;
 
 export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProps) {
@@ -141,7 +122,7 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
     }
     
     setIsProcessing(true);
-    setStep('preview'); // Muda para a tela de preview pra mostrar o loading
+    setStep('preview');
     
     try {
         const input: CategorizeTransactionsInput = {
@@ -169,7 +150,7 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
     } catch (error: any) {
         console.error("AI Categorization Error:", error);
         toast({ variant: 'destructive', title: 'Erro da IA', description: 'Ocorreu um erro ao categorizar as transações. Verifique as categorias manualmente.' });
-        // Se a IA falhar, continua sem as categorias
+        // Se a IA falhar, continua sem as categorias, mas exibe a prévia
         setParsed(parsedData);
     } finally {
         setIsProcessing(false);
