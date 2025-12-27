@@ -40,51 +40,45 @@ const CategoryIcon = ({ category, className }: { category: string; className?: s
 const availableCategories = (type: 'income' | 'expense') => 
     Object.values(categoriesConfig).filter(cat => cat.type === type);
 
-
+// Função de sanitização robusta para valores monetários em formato BRL
 function sanitizeCurrency(valueStr: string): number {
     if (!valueStr) return 0;
-    // Remove R$, espaços e pontos de milhar
-    const cleaned = valueStr.replace(/R\$\s?|\./g, '');
-    // Substitui a vírgula de decimal por um ponto
-    const finalStr = cleaned.replace(',', '.');
+    // Remove tudo que não for dígito, vírgula ou sinal de menos
+    const cleaned = valueStr.replace(/[^\d,-]/g, '');
+    // Substitui a última vírgula por um ponto para o decimal
+    const finalStr = cleaned.replace(/,([^,]*)$/, '.$1');
     return parseFloat(finalStr);
 }
 
+// Parser especializado para o formato RAW do extrato
 function parseStatement(text: string): ParsedTransaction[] {
     const lines = text.split('\n').filter(line => line.trim() !== '');
     const transactions: ParsedTransaction[] = [];
     
-    // Regex mais flexível para data, descrição e valor
-    const transactionRegex = /(\d{2}\/\d{2}(?:\/\d{4})?)\s+(.*?)\s+(-?[\d,.]+)/;
+    // Regex para capturar data, valor (com ponto decimal) e descrição, ignorando UUID
+    const transactionRegex = /^(\d{2}\/\d{2}\/\d{4})\s+(-?[\d.]+)\s+(?:[a-f0-9-]{36}\s+)?(.*)/i;
 
     lines.forEach(line => {
         const match = line.match(transactionRegex);
         
         if (match) {
-            const [_, dateStr, rawDescription, valueStr] = match;
+            const [_, dateStr, valueStr, description] = match;
 
             const dateParts = dateStr.split('/');
             const day = parseInt(dateParts[0], 10);
             const month = parseInt(dateParts[1], 10) - 1;
-            let year = dateParts.length === 3 ? parseInt(dateParts[2], 10) : new Date().getFullYear();
-            if (year < 2000) year += 2000;
+            const year = parseInt(dateParts[2], 10);
 
-            const amount = sanitizeCurrency(valueStr);
+            // Usa parseFloat diretamente, pois o valor já está no formato correto (ex: -21.25)
+            const amount = parseFloat(valueStr);
             
-            let description = rawDescription.trim()
-                .replace(/Compra no débito - /i, '')
-                .replace(/pagamento em debito - /i, '')
-                .replace(/Transferência enviada - /i, '')
-                .replace(/Transferência recebida - /i, '')
-                .trim();
-
-            if (!isNaN(day) && !isNaN(month) && !isNaN(amount) && description) {
+            if (!isNaN(day) && !isNaN(month) && !isNaN(year) && !isNaN(amount) && description) {
                 transactions.push({
                     date: new Date(year, month, day).toISOString(),
                     amount: Math.abs(amount),
-                    description,
+                    description: description.trim(),
                     type: amount >= 0 ? 'income' : 'expense',
-                    category: ''
+                    category: '' // A IA preencherá isso
                 });
             }
         }
@@ -98,9 +92,9 @@ const exampleText = `COMO FUNCIONA:
 Copie o texto da sua fatura ou extrato e cole no campo abaixo. O sistema tentará encontrar transações em diversos formatos.
 
 Exemplos de formatos aceitos:
-26/12/2025 Uber -50,23
-26/12/2025 Salário 1200,00
-25/12/2025 Supermercado -150,99
+26/12/2025 Uber -50.23
+26/12/2025 Salário 1200.00
+25/12/2025 Supermercado -150.99
 `;
 
 export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProps) {
@@ -120,7 +114,7 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
     }
     const parsedData = parseStatement(text);
     if (parsedData.length === 0) {
-        toast({ variant: 'destructive', title: 'Nenhuma transação encontrada', description: 'Verifique o texto colado. O sistema procura por linhas com data e valor.' });
+        toast({ variant: 'destructive', title: 'Nenhuma transação encontrada', description: 'Verifique o texto colado. O sistema procura por linhas com data, valor e descrição.' });
         return;
     }
     
@@ -222,9 +216,12 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
   }, [open])
 
   const ApiStatusIndicator = () => {
-    if (apiStatus.status === 'idle') return null;
+    if (apiStatus.status === 'idle' && !isProcessing) return null;
 
-    if (apiStatus.status === 'success') {
+    let statusMessage = apiStatus.message;
+    if (isProcessing) statusMessage = 'Categorizando transações com IA...';
+
+    if (apiStatus.status === 'success' && !isProcessing) {
       return (
         <div className="flex items-center gap-2 text-sm text-green-500 mt-2">
           <CheckCircle className="h-4 w-4" />
@@ -233,7 +230,7 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
       );
     }
 
-    if (apiStatus.status === 'error') {
+    if (apiStatus.status === 'error' && !isProcessing) {
       return (
         <div className="flex items-center gap-2 text-sm text-red-500 mt-2">
           <XCircle className="h-4 w-4" />
@@ -242,7 +239,12 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
       );
     }
     
-    return null;
+    return (
+       <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <p>{statusMessage}</p>
+        </div>
+    );
   };
 
   return (
@@ -271,7 +273,7 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
         
         {step === 'preview' && (
           isProcessing ? (
-             <div className="h-[50vh] flex flex-col items-center justify-center gap-4">
+             <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
                 <p className="text-lg text-muted-foreground">Categorizando transações com IA...</p>
              </div>
@@ -344,7 +346,9 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
         <DialogFooter className="pt-4">
           <Button type="button" variant="ghost" onClick={handleClose} disabled={isProcessing}>Cancelar</Button>
           {step === 'paste' ? (
-            <Button type="button" onClick={handleParseAndCategorize}>Analisar Texto</Button>
+            <Button type="button" onClick={handleParseAndCategorize} disabled={isProcessing}>
+                {isProcessing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analisando...</> : 'Analisar Texto'}
+            </Button>
           ) : (
             <>
               <Button type="button" variant="secondary" onClick={() => setStep('paste')} disabled={isProcessing}>Voltar</Button>
