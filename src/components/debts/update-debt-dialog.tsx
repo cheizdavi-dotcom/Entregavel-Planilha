@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { updateDebtAction, deleteDebtAction } from '@/app/actions';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 import type { Debt } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 
@@ -59,6 +60,7 @@ export function UpdateDebtDialog({ open, onOpenChange, debt }: UpdateDebtDialogP
   const [isDeleting, setIsDeleting] = React.useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const [debts, setDebts] = useLocalStorage<Debt[]>('debts', []);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -96,6 +98,8 @@ export function UpdateDebtDialog({ open, onOpenChange, debt }: UpdateDebtDialogP
       if (result?.errors) {
         toast({ variant: 'destructive', title: 'Erro ao Atualizar Dívida', description: result.errors._server?.[0] });
       } else {
+        const updatedDebts = debts.map(d => d.id === debt.id ? { ...d, paidValue: paidValueAsNumber } : d);
+        setDebts(updatedDebts);
         toast({ title: 'Sucesso!', description: 'Sua dívida foi atualizada.', className: 'bg-primary text-primary-foreground' });
         handleClose();
       }
@@ -120,6 +124,8 @@ export function UpdateDebtDialog({ open, onOpenChange, debt }: UpdateDebtDialogP
       if (result?.errors) {
         toast({ variant: 'destructive', title: 'Erro ao Excluir Dívida', description: result.errors._server?.[0] });
       } else {
+        const updatedDebts = debts.filter(d => d.id !== debt.id);
+        setDebts(updatedDebts);
         toast({ title: 'Dívida Excluída', description: 'A dívida foi removida com sucesso.' });
         handleClose();
       }

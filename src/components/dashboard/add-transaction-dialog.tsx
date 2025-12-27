@@ -7,6 +7,8 @@ import { z } from 'zod';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { addTransactionAction } from '@/app/actions';
+import { useLocalStorage } from '@/hooks/use-local-storage';
+import type { Transaction } from '@/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CalendarIcon } from 'lucide-react';
@@ -69,6 +71,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialDate }: AddTra
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const [transactions, setTransactions] = useLocalStorage<Transaction[]>('transactions', []);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -141,6 +144,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialDate }: AddTra
                 description: serverError || 'Por favor, verifique os campos e tente novamente.',
             });
         } else {
+            setTransactions([...transactions, result.data as Transaction]);
             toast({
                 title: 'Sucesso!',
                 description: 'Sua transação foi adicionada.',

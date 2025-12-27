@@ -1,9 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { collection, onSnapshot, query, orderBy, where, Unsubscribe } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 import type { Transaction, Goal } from '@/types';
 import { startOfMonth, endOfMonth, subMonths, isSameMonth } from 'date-fns';
 
@@ -54,8 +53,7 @@ const DashboardSkeleton = () => (
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [transactions, setTransactions] = React.useState<Transaction[]>([]);
-  const [prevMonthTransactions, setPrevMonthTransactions] = React.useState<Transaction[]>([]);
+  const [allTransactions, setAllTransactions] = useLocalStorage<Transaction[]>('transactions', []);
   const [loading, setLoading] = React.useState(true);
   const [currentDate, setCurrentDate] = React.useState(new Date());
 
@@ -73,79 +71,34 @@ export default function DashboardPage() {
     setSelectedGoal(goal);
     setUpdateGoalOpen(true);
   };
-
+  
   React.useEffect(() => {
-    if (user?.uid) {
-      if (!db) {
-        console.error("Conexão com o Firestore não estabelecida.");
-        setLoading(false);
-        return;
-      }
-      
-      setLoading(true);
+    // Apenas simula o carregamento inicial, já que o localStorage é síncrono.
+    setLoading(false);
+  }, [user]);
 
-      let unsubscribe: Unsubscribe | null = null;
-      let unsubscribePrev: Unsubscribe | null = null;
+  const { transactions, prevMonthTransactions } = React.useMemo(() => {
+    if (!user) return { transactions: [], prevMonthTransactions: [] };
 
-      try {
-        const firstDay = startOfMonth(currentDate);
-        const lastDay = endOfMonth(currentDate);
-        
-        const q = query(
-          collection(db, 'users', user.uid, 'transactions'),
-          where('date', '>=', firstDay.toISOString()),
-          where('date', '<=', lastDay.toISOString()),
-          orderBy('date', 'desc')
-        );
-        
-        unsubscribe = onSnapshot(q, (querySnapshot) => {
-          const userTransactions: Transaction[] = [];
-          querySnapshot.forEach((doc) => {
-            userTransactions.push({ id: doc.id, ...doc.data() } as Transaction);
-          });
-          setTransactions(userTransactions);
-          setLoading(false);
-        }, (error) => {
-          console.error("Error fetching transactions: ", error);
-          setLoading(false);
-        });
+    const firstDay = startOfMonth(currentDate);
+    const lastDay = endOfMonth(currentDate);
+    
+    const currentMonthT = allTransactions.filter(t => {
+      const tDate = new Date(t.date);
+      return t.userId === user.uid && tDate >= firstDay && tDate <= lastDay;
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-        // Fetch previous month's transactions for comparison
-        const prevMonth = subMonths(currentDate, 1);
-        const prevMonthFirstDay = startOfMonth(prevMonth);
-        const prevMonthLastDay = endOfMonth(prevMonth);
+    const prevMonth = subMonths(currentDate, 1);
+    const prevMonthFirstDay = startOfMonth(prevMonth);
+    const prevMonthLastDay = endOfMonth(prevMonth);
+    
+    const prevMonthT = allTransactions.filter(t => {
+      const tDate = new Date(t.date);
+      return t.userId === user.uid && tDate >= prevMonthFirstDay && tDate <= prevMonthLastDay;
+    });
 
-        const pq = query(
-          collection(db, 'users', user.uid, 'transactions'),
-          where('date', '>=', prevMonthFirstDay.toISOString()),
-          where('date', '<=', prevMonthLastDay.toISOString())
-        );
-
-        unsubscribePrev = onSnapshot(pq, (querySnapshot) => {
-          const prevTransactions: Transaction[] = [];
-          querySnapshot.forEach((doc) => {
-            prevTransactions.push(doc.data() as Transaction);
-          });
-          setPrevMonthTransactions(prevTransactions);
-        });
-
-      } catch (error) {
-        console.error("Error setting up Firestore listeners: ", error);
-        setLoading(false);
-      }
-      
-      return () => {
-        if (unsubscribe) {
-          unsubscribe();
-        }
-        if (unsubscribePrev) {
-          unsubscribePrev();
-        }
-      };
-    } else if (!user) {
-        setLoading(false);
-    }
-  }, [user, currentDate]);
+    return { transactions: currentMonthT, prevMonthTransactions: prevMonthT };
+  }, [allTransactions, user, currentDate]);
 
   const { balance, income, expenses } = React.useMemo(() => {
     return transactions.reduce(

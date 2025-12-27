@@ -1,9 +1,14 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { collection, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { z } from 'zod';
+import { v4 as uuidv4 } from 'uuid'; // Precisaremos de UUIDs para os IDs locais
+
+// NOTA: Como estamos usando localStorage, as 'actions' não vão realmente interagir
+// com um servidor. Elas apenas validam e retornam os dados para que o cliente
+// possa salvá-los no localStorage. Esta é uma adaptação do padrão.
+// O ideal seria que o cliente fizesse tudo, mas vamos manter a estrutura
+// para minimizar as mudanças no lado do cliente.
 
 const transactionSchema = z.object({
   userId: z.string().min(1),
@@ -17,12 +22,6 @@ const transactionSchema = z.object({
 });
 
 export async function addTransactionAction(formData: FormData) {
-  if (!db) {
-    return {
-      errors: { _server: ['A conexão com o banco de dados não foi estabelecida.'] },
-    };
-  }
-  
   const values = {
     userId: formData.get('userId'),
     type: formData.get('type'),
@@ -41,28 +40,21 @@ export async function addTransactionAction(formData: FormData) {
       errors: validatedFields.error.flatten().fieldErrors,
     };
   }
+  
+  const date = new Date(`${validatedFields.data.date}T12:00:00.000Z`);
 
-  try {
-    // A data vem do formulário no formato 'yyyy-MM-dd'.
-    // O Firestore aceita strings no formato ISO 8601, então podemos converter diretamente.
-    // Adicionamos a hora para evitar problemas de fuso horário (timezone).
-    const date = new Date(`${validatedFields.data.date}T12:00:00.000Z`);
+  const newTransaction = {
+    id: uuidv4(),
+    ...validatedFields.data,
+    date: date.toISOString(),
+  };
 
-    await addDoc(collection(db, 'users', validatedFields.data.userId, 'transactions'), {
-      ...validatedFields.data,
-      date: date.toISOString(),
-    });
-
-    revalidatePath('/');
-    return {
-      message: 'Transação adicionada com sucesso.',
-    };
-  } catch (e: any) {
-    console.error("Firebase Add Transaction Error: ", e);
-    return {
-      errors: { _server: [e.message || 'Falha ao adicionar transação. Verifique as regras do Firestore ou sua conexão.'] },
-    };
-  }
+  // Em vez de salvar no DB, retornamos o objeto para o cliente salvar.
+  revalidatePath('/');
+  return {
+    message: 'Transação validada com sucesso.',
+    data: newTransaction
+  };
 }
 
 
@@ -74,12 +66,6 @@ const goalSchema = z.object({
 });
 
 export async function addGoalAction(formData: FormData) {
-  if (!db) {
-    return {
-      errors: { _server: ['A conexão com o banco de dados não foi estabelecida.'] },
-    };
-  }
-
   const values = {
     userId: formData.get('userId'),
     name: formData.get('name'),
@@ -95,16 +81,13 @@ export async function addGoalAction(formData: FormData) {
     };
   }
 
-  try {
-    await addDoc(collection(db, 'users', validatedFields.data.userId, 'goals'), validatedFields.data);
-    revalidatePath('/');
-    return { message: 'Meta adicionada com sucesso.' };
-  } catch (e: any) {
-    console.error("Firebase Add Goal Error: ", e);
-    return {
-      errors: { _server: [e.message || 'Falha ao adicionar meta.'] },
-    };
-  }
+  const newGoal = {
+    id: uuidv4(),
+    ...validatedFields.data,
+  };
+
+  revalidatePath('/');
+  return { message: 'Meta validada com sucesso.', data: newGoal };
 }
 
 const updateGoalSchema = z.object({
@@ -115,8 +98,6 @@ const updateGoalSchema = z.object({
 });
 
 export async function updateGoalAction(formData: FormData) {
-    if (!db) return { errors: { _server: ['A conexão com o banco de dados não foi estabelecida.'] } };
-
     const values = {
         userId: formData.get('userId'),
         goalId: formData.get('goalId'),
@@ -134,16 +115,9 @@ export async function updateGoalAction(formData: FormData) {
     if (currentValue > totalValue) {
         return { errors: { currentValue: ['O valor guardado não pode ser maior que o valor total da meta.'] } };
     }
-
-    try {
-        const goalRef = doc(db, 'users', userId, 'goals', goalId);
-        await updateDoc(goalRef, { currentValue: currentValue });
-        revalidatePath('/');
-        return { message: 'Meta atualizada com sucesso.' };
-    } catch (e: any) {
-        console.error("Firebase Update Goal Error: ", e);
-        return { errors: { _server: [e.message || 'Falha ao atualizar meta.'] } };
-    }
+    
+    revalidatePath('/');
+    return { message: 'Meta atualizada com sucesso.', data: { id: goalId, currentValue } };
 }
 
 
@@ -153,8 +127,6 @@ const deleteGoalSchema = z.object({
 });
 
 export async function deleteGoalAction(formData: FormData) {
-    if (!db) return { errors: { _server: ['A conexão com o banco de dados não foi estabelecida.'] } };
-
     const values = {
         userId: formData.get('userId'),
         goalId: formData.get('goalId'),
@@ -165,16 +137,8 @@ export async function deleteGoalAction(formData: FormData) {
         return { errors: validatedFields.error.flatten().fieldErrors };
     }
 
-    const { userId, goalId } = validatedFields.data;
-
-    try {
-        await deleteDoc(doc(db, 'users', userId, 'goals', goalId));
-        revalidatePath('/');
-        return { message: 'Meta excluída com sucesso.' };
-    } catch (e: any) {
-        console.error("Firebase Delete Goal Error: ", e);
-        return { errors: { _server: [e.message || 'Falha ao excluir meta.'] } };
-    }
+    revalidatePath('/');
+    return { message: 'Meta excluída com sucesso.', data: { id: validatedFields.data.goalId } };
 }
 
 
@@ -186,8 +150,6 @@ const debtSchema = z.object({
 });
 
 export async function addDebtAction(formData: FormData) {
-  if (!db) return { errors: { _server: ['A conexão com o banco de dados não foi estabelecida.'] } };
-
   const values = {
     userId: formData.get('userId'),
     creditorName: formData.get('creditorName'),
@@ -198,15 +160,14 @@ export async function addDebtAction(formData: FormData) {
   const validatedFields = debtSchema.safeParse(values);
   if (!validatedFields.success) return { errors: validatedFields.error.flatten().fieldErrors };
   if (validatedFields.data.paidValue > validatedFields.data.totalValue) return { errors: { paidValue: ['O valor pago não pode ser maior que o valor total.'] } };
-
-  try {
-    await addDoc(collection(db, 'users', validatedFields.data.userId, 'debts'), validatedFields.data);
-    revalidatePath('/dividas');
-    return { message: 'Dívida adicionada com sucesso.' };
-  } catch (e: any) {
-    console.error("Firebase Add Debt Error: ", e);
-    return { errors: { _server: [e.message || 'Falha ao adicionar dívida.'] } };
-  }
+  
+  const newDebt = {
+    id: uuidv4(),
+    ...validatedFields.data,
+  };
+  
+  revalidatePath('/dividas');
+  return { message: 'Dívida validada com sucesso.', data: newDebt };
 }
 
 const updateDebtSchema = z.object({
@@ -217,8 +178,6 @@ const updateDebtSchema = z.object({
 });
 
 export async function updateDebtAction(formData: FormData) {
-    if (!db) return { errors: { _server: ['A conexão com o banco de dados não foi estabelecida.'] } };
-
     const values = {
         userId: formData.get('userId'),
         debtId: formData.get('debtId'),
@@ -229,18 +188,11 @@ export async function updateDebtAction(formData: FormData) {
     const validatedFields = updateDebtSchema.safeParse(values);
     if (!validatedFields.success) return { errors: validatedFields.error.flatten().fieldErrors };
 
-    const { userId, debtId, paidValue, totalValue } = validatedFields.data;
+    const { debtId, paidValue, totalValue } = validatedFields.data;
     if (paidValue > totalValue) return { errors: { paidValue: ['O valor pago não pode ser maior que o valor total.'] } };
 
-    try {
-        const debtRef = doc(db, 'users', userId, 'debts', debtId);
-        await updateDoc(debtRef, { paidValue: paidValue });
-        revalidatePath('/dividas');
-        return { message: 'Dívida atualizada com sucesso.' };
-    } catch (e: any) {
-        console.error("Firebase Update Debt Error: ", e);
-        return { errors: { _server: [e.message || 'Falha ao atualizar dívida.'] } };
-    }
+    revalidatePath('/dividas');
+    return { message: 'Dívida atualizada com sucesso.', data: { id: debtId, paidValue } };
 }
 
 const deleteDebtSchema = z.object({
@@ -249,18 +201,10 @@ const deleteDebtSchema = z.object({
 });
 
 export async function deleteDebtAction(formData: FormData) {
-    if (!db) return { errors: { _server: ['A conexão com o banco de dados não foi estabelecida.'] } };
     const values = { userId: formData.get('userId'), debtId: formData.get('debtId') };
     const validatedFields = deleteDebtSchema.safeParse(values);
     if (!validatedFields.success) return { errors: validatedFields.error.flatten().fieldErrors };
-    const { userId, debtId } = validatedFields.data;
-
-    try {
-        await deleteDoc(doc(db, 'users', userId, 'debts', debtId));
-        revalidatePath('/dividas');
-        return { message: 'Dívida excluída com sucesso.' };
-    } catch (e: any) {
-        console.error("Firebase Delete Debt Error: ", e);
-        return { errors: { _server: [e.message || 'Falha ao excluir dívida.'] } };
-    }
+    
+    revalidatePath('/dividas');
+    return { message: 'Dívida excluída com sucesso.', data: { id: validatedFields.data.debtId } };
 }

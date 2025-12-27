@@ -3,8 +3,7 @@
 import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import type { Debt } from '@/types';
-import { collection, onSnapshot, query, Unsubscribe } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 import AuthGuard from '@/components/auth-guard';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -73,31 +72,20 @@ const EmptyState = ({ onAddClick }: { onAddClick: () => void }) => (
 
 export default function DividasPage() {
     const { user } = useAuth();
-    const [debts, setDebts] = React.useState<Debt[]>([]);
+    const [debts, setDebts] = useLocalStorage<Debt[]>('debts', []);
     const [loading, setLoading] = React.useState(true);
     const [isAddOpen, setAddOpen] = React.useState(false);
     const [isUpdateOpen, setUpdateOpen] = React.useState(false);
     const [selectedDebt, setSelectedDebt] = React.useState<Debt | null>(null);
 
+    const userDebts = React.useMemo(() => {
+        if (!user) return [];
+        return debts.filter(d => d.userId === user.uid).sort((a,b) => (a.totalValue - a.paidValue) - (b.totalValue - b.paidValue));
+    }, [debts, user]);
+
     React.useEffect(() => {
-        if (user?.uid && db) {
-            setLoading(true);
-            const q = query(collection(db, 'users', user.uid, 'debts'));
-            const unsubscribe: Unsubscribe = onSnapshot(q, (querySnapshot) => {
-                const userDebts: Debt[] = [];
-                querySnapshot.forEach((doc) => {
-                    userDebts.push({ id: doc.id, ...doc.data() } as Debt);
-                });
-                setDebts(userDebts.sort((a,b) => (a.totalValue - a.paidValue) - (b.totalValue - b.paidValue)));
-                setLoading(false);
-            }, (error) => {
-                console.error("Error fetching debts: ", error);
-                setLoading(false);
-            });
-            return () => unsubscribe();
-        } else if (!user) {
-            setLoading(false);
-        }
+        // Apenas simula o carregamento inicial, já que o localStorage é síncrono.
+        setLoading(false);
     }, [user]);
 
     const handleCardClick = (debt: Debt) => {
@@ -123,8 +111,8 @@ export default function DividasPage() {
                                     <SkeletonCard />
                                     <SkeletonCard />
                                 </>
-                            ) : debts.length > 0 ? (
-                                debts.map(debt => (
+                            ) : userDebts.length > 0 ? (
+                                userDebts.map(debt => (
                                     <DebtCard key={debt.id} debt={debt} onClick={handleCardClick} />
                                 ))
                             ) : (

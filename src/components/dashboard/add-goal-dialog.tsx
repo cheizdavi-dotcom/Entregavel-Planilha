@@ -7,6 +7,8 @@ import { z } from 'zod';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { addGoalAction } from '@/app/actions';
+import { useLocalStorage } from '@/hooks/use-local-storage';
+import type { Goal } from '@/types';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -47,6 +49,7 @@ export function AddGoalDialog({ open, onOpenChange }: AddGoalDialogProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const [goals, setGoals] = useLocalStorage<Goal[]>('goals', []);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -86,6 +89,7 @@ export function AddGoalDialog({ open, onOpenChange }: AddGoalDialogProps) {
       if (result?.errors) {
         toast({ variant: 'destructive', title: 'Erro ao Adicionar Meta', description: result.errors._server?.[0] || 'Verifique os dados e tente novamente.' });
       } else {
+        setGoals([...goals, result.data as Goal]);
         toast({ title: 'Sucesso!', description: 'Sua meta foi adicionada.', className: 'bg-primary text-primary-foreground' });
         form.reset();
         onOpenChange(false);

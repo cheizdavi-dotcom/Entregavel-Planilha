@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { updateGoalAction, deleteGoalAction } from '@/app/actions';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 import type { Goal } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 
@@ -59,6 +60,7 @@ export function UpdateGoalDialog({ open, onOpenChange, goal }: UpdateGoalDialogP
   const [isDeleting, setIsDeleting] = React.useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const [goals, setGoals] = useLocalStorage<Goal[]>('goals', []);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -92,18 +94,19 @@ export function UpdateGoalDialog({ open, onOpenChange, goal }: UpdateGoalDialogP
       formData.append('userId', user.uid);
       formData.append('goalId', goal.id);
       formData.append('currentValue', String(currentValueAsNumber));
-      formData.append('totalValue', String(goal.totalValue)); // Enviar para validação no backend
+      formData.append('totalValue', String(goal.totalValue));
 
       const result = await updateGoalAction(formData);
 
       if (result?.errors) {
-        // Mostra erros de validação do servidor no campo correspondente
         if (result.errors.currentValue) {
             form.setError('currentValue', { message: result.errors.currentValue[0] });
         } else {
             toast({ variant: 'destructive', title: 'Erro ao Atualizar Meta', description: result.errors._server?.[0] });
         }
       } else {
+        const updatedGoals = goals.map(g => g.id === goal.id ? { ...g, currentValue: currentValueAsNumber } : g);
+        setGoals(updatedGoals);
         toast({ title: 'Sucesso!', description: 'Sua meta foi atualizada.', className: 'bg-primary text-primary-foreground' });
         handleClose();
       }
@@ -129,6 +132,8 @@ export function UpdateGoalDialog({ open, onOpenChange, goal }: UpdateGoalDialogP
       if (result?.errors) {
         toast({ variant: 'destructive', title: 'Erro ao Excluir Meta', description: result.errors._server?.[0] });
       } else {
+        const updatedGoals = goals.filter(g => g.id !== goal.id);
+        setGoals(updatedGoals);
         toast({ title: 'Meta Excluída', description: 'Seu objetivo foi removido com sucesso.' });
         handleClose();
       }
