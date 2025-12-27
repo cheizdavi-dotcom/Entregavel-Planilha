@@ -43,14 +43,10 @@ export async function addTransactionAction(formData: FormData) {
   }
 
   try {
-    // Corrige a conversão de data para evitar problemas de fuso horário (timezone) e formato.
-    // A data vem como uma string 'yyyy-MM-dd' do formulário
-    const dateParts = validatedFields.data.date.split('-');
-    const year = parseInt(dateParts[0], 10);
-    const month = parseInt(dateParts[1], 10) - 1; // Mês em JS é 0-indexado
-    const day = parseInt(dateParts[2], 10);
-    const date = new Date(Date.UTC(year, month, day, 12, 0, 0));
-
+    // A data vem do formulário no formato 'yyyy-MM-dd'.
+    // O Firestore aceita strings no formato ISO 8601, então podemos converter diretamente.
+    // Adicionamos a hora para evitar problemas de fuso horário (timezone).
+    const date = new Date(`${validatedFields.data.date}T12:00:00.000Z`);
 
     await addDoc(collection(db, 'users', validatedFields.data.userId, 'transactions'), {
       ...validatedFields.data,
