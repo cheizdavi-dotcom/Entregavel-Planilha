@@ -14,7 +14,6 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -22,6 +21,7 @@ import { formatCurrency } from '@/lib/utils';
 import { categoriesConfig } from '@/lib/categories';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 
 interface ImportDialogProps {
   open: boolean;
@@ -34,53 +34,52 @@ const CategoryIcon = ({ category, className }: { category: string; className?: s
   return Icon ? <Icon className={className} /> : null;
 };
 
-const availableCategories = Object.values(categoriesConfig).filter(cat => cat.type === 'expense');
+const availableCategories = (type: 'income' | 'expense') => 
+    Object.values(categoriesConfig).filter(cat => cat.type === type);
 
-function parseStatement(text: string, year: number, month: number): ParsedTransaction[] {
-  const lines = text.split('\n');
-  const transactions: ParsedTransaction[] = [];
-  const dateRegex = /(\d{2})\s(\w{3})/; // Regex para "DD MMM"
-  const valueRegex = /R\$\s?([\d.,]+)/;
 
-  const monthMap: { [key: string]: number } = {
-    JAN: 0, FEV: 1, MAR: 2, ABR: 3, MAI: 4, JUN: 5,
-    JUL: 6, AGO: 7, SET: 8, OUT: 9, NOV: 10, DEZ: 11,
-  };
+function parseStatement(text: string): ParsedTransaction[] {
+    const lines = text.split('\n').filter(line => line.trim() !== '');
+    const transactions: ParsedTransaction[] = [];
 
-  lines.forEach(line => {
-    const dateMatch = line.match(dateRegex);
-    const valueMatch = line.match(valueRegex);
+    // Regex aprimorado para data DD/MM/YYYY ou DD/MM e valor numérico (incluindo negativos)
+    const transactionRegex = /(\d{2}\/\d{2}(?:\/\d{4})?)\s+(-?[\d.,]+(?:,\d{2})?)\s+(.*)/;
 
-    if (dateMatch && valueMatch) {
-      const day = parseInt(dateMatch[1], 10);
-      const monthStr = dateMatch[2].toUpperCase();
-      const monthIdx = monthMap[monthStr];
-      const description = line.replace(dateMatch[0], '').replace(valueMatch[0], '').trim();
-      const amount = parseFloat(valueMatch[1].replace(/\./g, '').replace(',', '.'));
-      
-      const transactionYear = monthIdx > month ? year - 1 : year;
-      
-      if (!isNaN(day) && monthIdx !== undefined && !isNaN(amount)) {
-        transactions.push({
-          date: new Date(transactionYear, monthIdx, day).toISOString(),
-          description: description || 'Transação Importada',
-          amount,
-        });
-      }
-    }
-  });
+    lines.forEach(line => {
+        // Tenta um match mais estruturado primeiro
+        const match = line.match(transactionRegex);
+        if (match) {
+            const [_, dateStr, valueStr, description] = match;
+            const dateParts = dateStr.split('/');
+            const day = parseInt(dateParts[0], 10);
+            const month = parseInt(dateParts[1], 10) - 1;
+            const year = dateParts.length === 3 ? parseInt(dateParts[2], 10) : new Date().getFullYear();
+            
+            const amount = parseFloat(valueStr.replace(/\./g, '').replace(',', '.'));
 
-  return transactions;
+            if (!isNaN(day) && !isNaN(month) && !isNaN(amount)) {
+                transactions.push({
+                    date: new Date(year, month, day).toISOString(),
+                    amount: Math.abs(amount),
+                    description: description.trim() || 'Transação Importada',
+                    type: amount >= 0 ? 'income' : 'expense',
+                });
+            }
+        }
+    });
+
+    return transactions;
 }
 
 const exampleText = `COMO FUNCIONA: Copie o texto da sua fatura (do app ou do PDF) e cole aqui.
-Exemplo:
+O sistema tentará encontrar linhas com data e valor.
+Exemplos de formatos aceitos:
+26/12/2025 -5.7 Compra no débito - BaitaSuper
+26/12/2025 40 Transferência Recebida - Amanda
 25 DEZ   PAGAMENTO EM DEBITO - R$ 20,45
-24 DEZ   Uber*uber*trip       - R$ 15,00
-22 DEZ   IFOOD*IFOOD.COM       - R$ 54,90
 `;
 
-export function ImportDialog({ open, onOpenChange, currentMonthDate }: ImportDialogProps) {
+export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [transactions, setTransactions] = useLocalStorage<Transaction[]>('transactions', []);
@@ -95,11 +94,9 @@ export function ImportDialog({ open, onOpenChange, currentMonthDate }: ImportDia
       toast({ variant: 'destructive', title: 'Texto vazio', description: 'Por favor, cole o conteúdo do extrato.' });
       return;
     }
-    const year = currentMonthDate.getFullYear();
-    const month = currentMonthDate.getMonth();
-    const parsedData = parseStatement(text, year, month);
+    const parsedData = parseStatement(text);
     if (parsedData.length === 0) {
-        toast({ variant: 'destructive', title: 'Nenhuma transação encontrada', description: 'Verifique o texto colado. O formato esperado é "DD MMM" e "R$ VALOR" na mesma linha.' });
+        toast({ variant: 'destructive', title: 'Nenhuma transação encontrada', description: 'Verifique o texto colado. O sistema procura por linhas com data e valor.' });
         return;
     }
     setParsed(parsedData);
@@ -114,13 +111,12 @@ export function ImportDialog({ open, onOpenChange, currentMonthDate }: ImportDia
       const newTransactions: Transaction[] = parsed.map((p, index) => ({
         id: uuidv4(),
         userId: user.uid,
-        type: 'expense',
+        type: p.type,
         amount: p.amount,
         description: p.description,
         date: p.date,
-        category: categoryMap[index] || 'Compras',
-        paymentMethod: 'Cartão de Crédito',
-        installments: 1,
+        category: categoryMap[index] || (p.type === 'income' ? 'Outras Receitas' : 'Compras'),
+        paymentMethod: 'Pix', // Default
       }));
 
       setTransactions([...transactions, ...newTransactions]);
@@ -152,7 +148,7 @@ export function ImportDialog({ open, onOpenChange, currentMonthDate }: ImportDia
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-dark border-border/20 max-w-2xl">
+      <DialogContent className="glass-dark border-border/20 max-w-3xl">
         <DialogHeader>
           <DialogTitle>Importador Inteligente (Magic Paste)</DialogTitle>
           <DialogDescription>
@@ -166,7 +162,7 @@ export function ImportDialog({ open, onOpenChange, currentMonthDate }: ImportDia
           <div className="space-y-4 py-4">
             <Textarea
               placeholder={exampleText}
-              className="h-64"
+              className="h-64 font-mono text-xs"
               value={text}
               onChange={(e) => setText(e.target.value)}
             />
@@ -179,6 +175,7 @@ export function ImportDialog({ open, onOpenChange, currentMonthDate }: ImportDia
                 <TableHeader>
                 <TableRow>
                     <TableHead>Data</TableHead>
+                    <TableHead>Tipo</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead>Categoria</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
@@ -187,15 +184,22 @@ export function ImportDialog({ open, onOpenChange, currentMonthDate }: ImportDia
                 <TableBody>
                 {parsed.map((p, index) => (
                     <TableRow key={index}>
-                    <TableCell>{new Date(p.date).toLocaleDateString('pt-BR')}</TableCell>
+                    <TableCell className='font-medium'>{new Date(p.date).toLocaleDateString('pt-BR')}</TableCell>
+                    <TableCell>
+                        <Badge variant={p.type === 'income' ? 'default' : 'destructive'}>
+                            {p.type === 'income' ? 'Receita' : 'Despesa'}
+                        </Badge>
+                    </TableCell>
                     <TableCell>{p.description}</TableCell>
                     <TableCell>
-                        <Select onValueChange={(value) => handleCategoryChange(index, value)} defaultValue="Compras">
+                        <Select 
+                            onValueChange={(value) => handleCategoryChange(index, value)} 
+                            defaultValue={p.type === 'income' ? 'Outras Receitas' : 'Compras'}>
                             <SelectTrigger className="w-[150px] h-8">
                                 <SelectValue placeholder="Categoria" />
                             </SelectTrigger>
                             <SelectContent>
-                                {availableCategories.map(cat => (
+                                {availableCategories(p.type).map(cat => (
                                     <SelectItem key={cat.label} value={cat.label}>
                                         <div className="flex items-center gap-2">
                                             <CategoryIcon category={cat.label} className="h-4 w-4" />
@@ -206,7 +210,9 @@ export function ImportDialog({ open, onOpenChange, currentMonthDate }: ImportDia
                             </SelectContent>
                         </Select>
                     </TableCell>
-                    <TableCell className="text-right font-inter font-bold">{formatCurrency(p.amount)}</TableCell>
+                    <TableCell className={`text-right font-inter font-bold ${p.type === 'income' ? 'text-primary' : 'text-foreground'}`}>
+                        {formatCurrency(p.amount)}
+                    </TableCell>
                     </TableRow>
                 ))}
                 </TableBody>
