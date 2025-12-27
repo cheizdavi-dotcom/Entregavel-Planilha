@@ -54,7 +54,7 @@ function parseStatement(text: string): Omit<ParsedTransaction, 'category'>[] {
     const transactions: Omit<ParsedTransaction, 'category'>[] = [];
     
     // Regex para capturar data, valor (com ponto decimal) e descrição, ignorando UUID
-    const transactionRegex = /^(\d{2}\/\d{2}\/\d{4})\s+(-?[\d.,]+)\s+(?:[a-f0-9-]{36}\s+)?(.*)/i;
+    const transactionRegex = /^(\d{2}\/\d{2}\/\d{4})\s+(-?\d+\.?\d*)\s+(?:[a-f0-9-]{36}\s+)?(.*)/i;
 
     lines.forEach(line => {
         const match = line.match(transactionRegex);
@@ -69,8 +69,8 @@ function parseStatement(text: string): Omit<ParsedTransaction, 'category'>[] {
             const month = parseInt(dateParts[1], 10) - 1;
             const year = parseInt(dateParts[2], 10);
 
-            // Usa a função de sanitização robusta
-            const amount = sanitizeCurrency(valueStr);
+            // Usa parseFloat diretamente, pois o valor já vem com ponto decimal
+            const amount = parseFloat(valueStr);
             
             if (!isNaN(day) && !isNaN(month) && !isNaN(year) && !isNaN(amount) && description) {
                 transactions.push({
@@ -85,6 +85,7 @@ function parseStatement(text: string): Omit<ParsedTransaction, 'category'>[] {
 
     return transactions;
 }
+
 
 function getCategoryFromDescription(description: string, type: 'income' | 'expense'): string {
     const lowerCaseDescription = description.toLowerCase();
@@ -186,7 +187,7 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
     const transactionToUpdate = { ...updated[index] };
 
     if (field === 'amount' && typeof value === 'string') {
-        transactionToUpdate[field] = parseFloat(value) || 0;
+        transactionToUpdate[field] = parseFloat(value.replace(',', '.')) || 0;
     } else {
         (transactionToUpdate[field] as any) = value;
     }
@@ -308,7 +309,7 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
                                   <Input 
                                       type="text"
                                       value={String(p.amount).replace('.',',')} 
-                                      onChange={(e) => handleFieldChange(index, 'amount', sanitizeCurrency(e.target.value))}
+                                      onChange={(e) => handleFieldChange(index, 'amount', e.target.value)}
                                       className={`h-8 font-inter font-bold text-right ${p.type === 'income' ? 'text-primary' : 'text-foreground'}`}
                                   />
                               </TableCell>
