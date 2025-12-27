@@ -43,17 +43,22 @@ const availableCategories = (type: 'income' | 'expense') =>
 function parseStatement(text: string): ParsedTransaction[] {
     const lines = text.split('\n').filter(line => line.trim() !== '');
     const transactions: ParsedTransaction[] = [];
-
-    const transactionRegex = /(\d{2}\/\d{2}(?:\/\d{4})?)\s+(-?[\d.,]+(?:,\d{2})?)\s+(.*)/;
-    const oldTransactionRegex = /(\d{1,2} [A-Z]{3})\s+(.*?)\s+-\s+R\$\s*([\d,]+\.\d{2})/;
-
+    const uuidRegex = /^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$/i; // Regex to match UUIDs
 
     lines.forEach(line => {
-        const match = line.match(transactionRegex);
-        const oldMatch = line.match(oldTransactionRegex);
+        // Skip lines that are just UUIDs or contain irrelevant info
+        if (uuidRegex.test(line.trim()) || line.toLowerCase().includes('agência') || line.toLowerCase().includes('nu pagamentos')) {
+            return;
+        }
+
+        const transactionRegex = /(\d{2}\/\d{2}(?:\/\d{4})?)\s+(-?[\d.,]+(?:,\d{2})?)\s+(.*)/;
+        const oldTransactionRegex = /(\d{1,2} [A-Z]{3})\s+(.*?)\s+-\s+R\$\s*([\d,]+\.\d{2})/;
+
+        let description = line.trim();
+        let match = line.match(transactionRegex);
 
         if (match) {
-            const [_, dateStr, valueStr, description] = match;
+            const [_, dateStr, valueStr, desc] = match;
             const dateParts = dateStr.split('/');
             const day = parseInt(dateParts[0], 10);
             const month = parseInt(dateParts[1], 10) - 1;
@@ -66,17 +71,43 @@ function parseStatement(text: string): ParsedTransaction[] {
                 transactions.push({
                     date: new Date(year, month, day).toISOString(),
                     amount: Math.abs(amount),
-                    description: description.trim() || 'Transação Importada',
+                    description: desc.trim() || 'Transação Importada',
                     type: amount >= 0 ? 'income' : 'expense',
-                    category: '' // Deixa em branco para a IA preencher
+                    category: ''
                 });
             }
-        } else if (oldMatch) {
-            // Lógica para o formato antigo, se necessário
+        } else {
+             const oldMatch = line.match(oldTransactionRegex);
+             if (oldMatch) {
+                // Handle old format
+             } else if (description) {
+                // Fallback for lines that might be descriptions for a previous transaction
+                // (Currently not implemented, as it can be complex)
+             }
         }
     });
+    
+    // Clean up descriptions by merging multi-line entries
+    const mergedTransactions: ParsedTransaction[] = [];
+    let tempDescription = '';
 
-    return transactions;
+    transactions.forEach((trans, index) => {
+        // A simple heuristic: if a description is very generic like 'Compra no débito',
+        // and the next line doesn't look like a new transaction, it might be a multi-line description.
+        // This part is complex, for now we will just use the single line description.
+        
+        // This Regex cleans up any remaining UUIDs or strange codes from the description
+        const cleanedDescription = trans.description
+            .replace(/[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}/i, '')
+            .replace(/agência: \d+ conta: \d+/i, '')
+            .replace(/nu pagamentos.*/i, '')
+            .trim();
+
+        mergedTransactions.push({ ...trans, description: cleanedDescription });
+    });
+
+
+    return mergedTransactions;
 }
 
 const exampleText = `COMO FUNCIONA:
@@ -277,7 +308,7 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
           ) : (
             <>
               <Button type="button" variant="secondary" onClick={() => setStep('paste')} disabled={isProcessing}>Voltar</Button>
-              <Button type="button" onClick={handleConfirmImport} disabled={isProcessing}>
+              <Button type="button" onClick={handleConfirmImport} disabled={isProcessing || parsed.length === 0}>
                 {isProcessing ? 'Importando...' : `Confirmar Importação (${parsed.length})`}
               </Button>
             </>
