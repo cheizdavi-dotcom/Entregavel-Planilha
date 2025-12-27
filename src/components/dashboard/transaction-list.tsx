@@ -46,6 +46,9 @@ const SkeletonRow = () => (
         <TableCell className="hidden md:table-cell">
             <Skeleton className="h-5 w-20" />
         </TableCell>
+         <TableCell className="hidden md:table-cell">
+            <Skeleton className="h-5 w-20" />
+        </TableCell>
         <TableCell className="text-right">
             <Skeleton className="h-5 w-20 ml-auto" />
         </TableCell>
@@ -75,6 +78,7 @@ export default function TransactionList({ transactions, loading }: TransactionLi
               <TableRow>
                 <TableHead>Descrição</TableHead>
                 <TableHead className="hidden md:table-cell">Categoria</TableHead>
+                <TableHead className="hidden md:table-cell">Pagamento</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
               </TableRow>
             </TableHeader>
@@ -111,8 +115,11 @@ export default function TransactionList({ transactions, loading }: TransactionLi
                             {t.category}
                         </Badge>
                     </TableCell>
+                     <TableCell className="hidden md:table-cell text-muted-foreground">
+                        {t.paymentMethod} {t.installments && t.installments > 1 && `(${t.installments}x)`}
+                    </TableCell>
                     <TableCell
-                        className={`text-right font-semibold text-base ${
+                        className={`text-right font-inter font-bold text-base ${
                         t.type === 'income' ? 'text-primary' : 'text-foreground'
                         }`}
                     >

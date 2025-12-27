@@ -10,9 +10,11 @@
         "amount": { "type": "number" },
         "description": { "type": "string" },
         "category": { "type": "string" },
-        "date": { "type": "string", "format": "date-time" }
+        "date": { "type": "string", "format": "date-time" },
+        "paymentMethod": { "type": "string", "enum": ["Dinheiro", "Pix", "Cartão de Crédito"]},
+        "installments": { "type": "number" }
       },
-      "required": ["userId", "type", "amount", "description", "category", "date"]
+      "required": ["userId", "type", "amount", "description", "category", "date", "paymentMethod"]
     },
     "Goal": {
       "title": "Goal",
@@ -25,6 +27,18 @@
         "totalValue": { "type": "number" }
       },
       "required": ["userId", "name", "currentValue", "totalValue"]
+    },
+    "Debt": {
+        "title": "Debt",
+        "description": "Represents a user's financial debt.",
+        "type": "object",
+        "properties": {
+            "userId": { "type": "string" },
+            "creditorName": { "type": "string" },
+            "totalValue": { "type": "number" },
+            "paidValue": { "type": "number" }
+        },
+        "required": ["userId", "creditorName", "totalValue", "paidValue"]
     }
   },
   "auth": {
@@ -38,6 +52,10 @@
     "/users/{userId}/goals/{goalId}": {
       "schema": { "$ref": "#/entities/Goal" },
       "description": "Stores user-specific financial goals."
+    },
+    "/users/{userId}/debts/{debtId}": {
+      "schema": { "$ref": "#/entities/Debt" },
+      "description": "Stores user-specific financial debts."
     }
   }
 }

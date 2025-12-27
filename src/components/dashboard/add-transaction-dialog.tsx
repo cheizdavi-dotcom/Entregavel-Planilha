@@ -50,6 +50,8 @@ const formSchema = z.object({
   description: z.string().min(2, { message: 'Descrição muito curta.' }).max(50),
   category: z.string({ required_error: 'Selecione uma categoria.' }).min(1, 'Selecione uma categoria.'),
   date: z.date({ required_error: 'A data é obrigatória.' }),
+  paymentMethod: z.string({ required_error: 'Selecione o tipo de pagamento.' }),
+  installments: z.string().optional(),
 });
 
 const CategoryIcon = ({ category, className }: { category: string; className?: string }) => {
@@ -75,6 +77,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialDate }: AddTra
       description: '',
       amount: '',
       date: initialDate,
+      paymentMethod: 'Dinheiro',
     },
   });
 
@@ -86,11 +89,14 @@ export function AddTransactionDialog({ open, onOpenChange, initialDate }: AddTra
         amount: '',
         category: undefined,
         date: initialDate,
+        paymentMethod: 'Dinheiro',
+        installments: '1',
       });
     }
   }, [open, initialDate, form]);
 
   const transactionType = form.watch('type');
+  const paymentMethod = form.watch('paymentMethod');
   
   React.useEffect(() => {
     form.resetField('category');
@@ -120,6 +126,10 @@ export function AddTransactionDialog({ open, onOpenChange, initialDate }: AddTra
         formData.append('description', values.description);
         formData.append('category', values.category);
         formData.append('date', values.date.toISOString().split('T')[0]);
+        formData.append('paymentMethod', values.paymentMethod);
+        if (values.paymentMethod === 'Cartão de Crédito' && values.installments) {
+            formData.append('installments', values.installments);
+        }
 
         const result = await addTransactionAction(formData);
 
@@ -198,8 +208,8 @@ export function AddTransactionDialog({ open, onOpenChange, initialDate }: AddTra
                     <FormLabel>Valor</FormLabel>
                     <FormControl>
                         <div className="relative">
-                            <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground">R$</span>
-                            <Input type="text" placeholder="0,00" {...field} className="pl-10" disabled={isSubmitting}/>
+                            <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground font-inter font-bold">R$</span>
+                            <Input type="text" placeholder="0,00" {...field} className="pl-10 font-inter font-bold" disabled={isSubmitting}/>
                         </div>
                     </FormControl>
                     <FormMessage />
@@ -293,6 +303,57 @@ export function AddTransactionDialog({ open, onOpenChange, initialDate }: AddTra
                 </FormItem>
               )}
             />
+            
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="paymentMethod"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo de Pagamento</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o pagamento" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Dinheiro">Dinheiro</SelectItem>
+                          <SelectItem value="Pix">Pix</SelectItem>
+                          <SelectItem value="Cartão de Crédito">Cartão de Crédito</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {paymentMethod === 'Cartão de Crédito' && (
+                    <FormField
+                      control={form.control}
+                      name="installments"
+                      render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Parcelas</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue="1">
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {[...Array(12)].map((_, i) => (
+                                        <SelectItem key={i+1} value={`${i+1}`}>{`${i+1}x`}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                )}
+            </div>
+
             <DialogFooter className='pt-4'>
                 <DialogClose asChild>
                     <Button type="button" variant="ghost" disabled={isSubmitting}>Cancelar</Button>

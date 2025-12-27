@@ -36,11 +36,11 @@ const GoalItem: React.FC<GoalItemProps> = ({ goal, onClick }) => {
       <div key={goal.id} className="mb-4 last:mb-0 cursor-pointer" onClick={() => onClick(goal)}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium">{goal.name}</h3>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground font-inter font-bold">
             {formatCurrency(goal.currentValue)} / {formatCurrency(goal.totalValue)}
           </span>
         </div>
-        <Progress value={percentage} className="h-2 mt-1" />
+        <Progress value={percentage} className="h-3 mt-1 rounded-full overflow-hidden" indicatorClassName="bg-gradient-to-r from-yellow-400 to-orange-500" />
       </div>
     );
 };
@@ -57,11 +57,11 @@ const SkeletonLoader = () => (
     <div className="space-y-4 p-4">
         <div className="space-y-2">
             <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-2 w-full" />
+            <Skeleton className="h-3 w-full" />
         </div>
         <div className="space-y-2">
             <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-2 w-full" />
+            <Skeleton className="h-3 w-full" />
         </div>
     </div>
 );
@@ -101,8 +101,8 @@ const GoalsCard: React.FC<GoalsCardProps> = ({ loading, onAddGoalClick, onGoalCl
     return (
         <Card className="glass-dark h-full flex flex-col">
             <CardHeader>
-                <CardTitle>Metas Financeiras</CardTitle>
-                <CardDescription>Acompanhe seu progresso para alcançar seus sonhos.</CardDescription>
+                <CardTitle>Rastreador de Sonhos</CardTitle>
+                <CardDescription>Acompanhe seu progresso para alcançar seus objetivos.</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col justify-center">
                 {isLoading ? (

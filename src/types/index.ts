@@ -8,6 +8,8 @@ export type Transaction = {
   description: string;
   category: string;
   date: string;
+  paymentMethod: 'Dinheiro' | 'Pix' | 'Cartão de Crédito';
+  installments?: number;
 };
 
 export type User = Pick<FirebaseUser, 'uid' | 'email' | 'displayName' | 'photoURL'>;
@@ -18,4 +20,12 @@ export type Goal = {
     name: string;
     currentValue: number;
     totalValue: number;
+};
+
+export type Debt = {
+    id: string;
+    userId: string;
+    creditorName: string;
+    totalValue: number;
+    paidValue: number;
 };

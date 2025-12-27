@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import {
   Card,
   CardContent,
@@ -59,7 +59,7 @@ export default function MonthlyOverviewChart({ transactions, loading, currentDat
 
     transactions.forEach((t) => {
        const transactionDate = new Date(t.date);
-       const dayOfMonth = transactionDate.getDate() - 1; 
+       const dayOfMonth = transactionDate.getUTCDate() - 1;
 
        if(dayOfMonth >= 0 && dayOfMonth < daysInMonth) {
             if (t.type === 'income') {
@@ -99,7 +99,7 @@ export default function MonthlyOverviewChart({ transactions, loading, currentDat
         {!hasData ? (
           <EmptyState />
         ) : (
-          <ChartContainer config={chartConfig} className="h-[280px] w-full">
+          <ResponsiveContainer width="100%" height={280}>
             <AreaChart 
                 accessibilityLayer 
                 data={data} 
@@ -107,15 +107,15 @@ export default function MonthlyOverviewChart({ transactions, loading, currentDat
             >
                 <defs>
                     <linearGradient id="fillIncome" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.4} />
-                        <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0.0} />
+                        <stop offset="5%" stopColor="#00ff88" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="#00ff88" stopOpacity={0.0} />
                     </linearGradient>
                     <linearGradient id="fillExpense" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.4} />
                         <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0.0} />
                     </linearGradient>
                 </defs>
-                <CartesianGrid vertical={false} strokeDasharray="5 5" stroke="hsl(var(--border) / 0.2)" />
+                <CartesianGrid vertical={false} stroke="transparent" />
                 <XAxis
                     dataKey="date"
                     tickLine={false}
@@ -141,15 +141,15 @@ export default function MonthlyOverviewChart({ transactions, loading, currentDat
               <Tooltip
                 cursor={true}
                 content={<ChartTooltipContent indicator="dot" formatter={(value, name, props) => {
-                    if (name === 'income') return [formatCurrency(Number(value)), "Receita"];
-                    if (name === 'expense') return [formatCurrency(Number(value)), "Despesa"];
+                    if (name === 'income') return [<span className="font-inter font-bold">{formatCurrency(Number(value))}</span>, "Receita"];
+                    if (name === 'expense') return [<span className="font-inter font-bold">{formatCurrency(Number(value))}</span>, "Despesa"];
                     return [value, name];
                 }}/>}
               />
-              <Area dataKey="income" type="monotone" fill="url(#fillIncome)" stroke="hsl(var(--chart-1))" strokeWidth={3} />
-              <Area dataKey="expense" type="monotone" fill="url(#fillExpense)" stroke="hsl(var(--chart-2))" strokeWidth={3} />
+              <Area dataKey="income" type="monotone" fill="url(#fillIncome)" stroke="#00ff88" strokeWidth={3} dot={false} />
+              <Area dataKey="expense" type="monotone" fill="url(#fillExpense)" stroke="hsl(var(--chart-2))" strokeWidth={3} dot={false} />
             </AreaChart>
-          </ChartContainer>
+          </ResponsiveContainer>
         )}
       </CardContent>
     </Card>

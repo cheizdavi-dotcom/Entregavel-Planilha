@@ -12,9 +12,10 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['var(--font-body)', 'Inter', 'sans-serif'],
-        headline: ['var(--font-body)', 'Inter', 'sans-serif'],
+        body: ['var(--font-inter)', 'sans-serif'],
+        headline: ['var(--font-inter)', 'sans-serif'],
         code: ['monospace'],
+        inter: ['var(--font-inter)', 'sans-serif'],
       },
       colors: {
         background: 'hsl(var(--background))',

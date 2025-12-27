@@ -21,6 +21,7 @@ import { AddGoalDialog } from '@/components/dashboard/add-goal-dialog';
 import { UpdateGoalDialog } from '@/components/dashboard/update-goal-dialog';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import AppSidebar from '@/components/app-sidebar';
 
 
 const DashboardSkeleton = () => (
@@ -178,7 +179,7 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6 p-4 pt-8 md:p-8 md:pt-6">
       <Header currentDate={currentDate} setCurrentDate={setCurrentDate} />
       
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <SummaryCards balance={balance} income={income} expenses={expenses} prevMonthSavings={prevMonthSavings} loading={loading}/>
       </div>
       
@@ -211,7 +212,8 @@ export default function DashboardPage() {
   return (
     <AuthGuard>
       <div className="relative flex min-h-screen w-full flex-col bg-background">
-        <main className="flex-1">
+        <AppSidebar />
+        <main className="flex-1 pl-0 md:pl-16">
           {loading ? <DashboardSkeleton /> : <MainContent />}
         </main>
         
@@ -231,7 +233,7 @@ export default function DashboardPage() {
         />
         
         <Button 
-            className="fixed bottom-8 right-8 h-16 w-16 rounded-full shadow-lg shadow-primary/30"
+            className="fixed bottom-8 right-8 h-16 w-16 rounded-full shadow-lg shadow-primary/30 z-50"
             onClick={() => setAddTransactionOpen(true)}
         >
           <Plus className="h-8 w-8" />

@@ -61,23 +61,10 @@ export default function Header({ currentDate, setCurrentDate }: HeaderProps) {
 
   return (
     <header className="flex w-full flex-col items-center justify-between gap-4 md:flex-row">
-      <div className="flex w-full items-center justify-between">
-        <div className="flex items-center gap-4">
-            <div className="hidden md:block"><Logo /></div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
-              Olá, {displayName}!
-            </h1>
-        </div>
-        <div className="flex items-center gap-4">
-            <Avatar>
-                {user?.photoURL && <AvatarImage src={user.photoURL} alt={displayName} />}
-                <AvatarFallback>{getUserInitials(user?.displayName)}</AvatarFallback>
-            </Avatar>
-            <Button variant="ghost" onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span className="hidden md:inline">Sair</span>
-            </Button>
-        </div>
+      <div className="flex w-full items-center justify-between md:justify-start md:gap-4">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">
+          Olá, {displayName}!
+        </h1>
       </div>
       
       <div className="w-full md:w-auto">

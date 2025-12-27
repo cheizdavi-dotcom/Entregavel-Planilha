@@ -12,6 +12,8 @@ const transactionSchema = z.object({
   description: z.string().min(1, 'A descrição é obrigatória.').max(100),
   category: z.string().min(1, 'A categoria é obrigatória.'),
   date: z.string().min(1, 'A data é obrigatória.'),
+  paymentMethod: z.string().min(1, 'O tipo de pagamento é obrigatório.'),
+  installments: z.coerce.number().optional(),
 });
 
 export async function addTransactionAction(formData: FormData) {
@@ -28,6 +30,8 @@ export async function addTransactionAction(formData: FormData) {
     description: formData.get('description'),
     category: formData.get('category'),
     date: formData.get('date'),
+    paymentMethod: formData.get('paymentMethod'),
+    installments: formData.get('installments'),
   };
 
   const validatedFields = transactionSchema.safeParse(values);
@@ -169,5 +173,93 @@ export async function deleteGoalAction(formData: FormData) {
     } catch (e: any) {
         console.error("Firebase Delete Goal Error: ", e);
         return { errors: { _server: [e.message || 'Falha ao excluir meta.'] } };
+    }
+}
+
+
+const debtSchema = z.object({
+  userId: z.string().min(1),
+  creditorName: z.string().min(1, 'O nome do credor é obrigatório.').max(50),
+  totalValue: z.coerce.number().positive('O valor total deve ser positivo.'),
+  paidValue: z.coerce.number().min(0, 'O valor pago não pode ser negativo.'),
+});
+
+export async function addDebtAction(formData: FormData) {
+  if (!db) return { errors: { _server: ['A conexão com o banco de dados não foi estabelecida.'] } };
+
+  const values = {
+    userId: formData.get('userId'),
+    creditorName: formData.get('creditorName'),
+    totalValue: formData.get('totalValue'),
+    paidValue: formData.get('paidValue'),
+  };
+
+  const validatedFields = debtSchema.safeParse(values);
+  if (!validatedFields.success) return { errors: validatedFields.error.flatten().fieldErrors };
+  if (validatedFields.data.paidValue > validatedFields.data.totalValue) return { errors: { paidValue: ['O valor pago não pode ser maior que o valor total.'] } };
+
+  try {
+    await addDoc(collection(db, 'users', validatedFields.data.userId, 'debts'), validatedFields.data);
+    revalidatePath('/dividas');
+    return { message: 'Dívida adicionada com sucesso.' };
+  } catch (e: any) {
+    console.error("Firebase Add Debt Error: ", e);
+    return { errors: { _server: [e.message || 'Falha ao adicionar dívida.'] } };
+  }
+}
+
+const updateDebtSchema = z.object({
+    userId: z.string().min(1),
+    debtId: z.string().min(1),
+    paidValue: z.coerce.number().min(0, "O valor pago não pode ser negativo."),
+    totalValue: z.coerce.number().positive('O valor total deve ser positivo.'),
+});
+
+export async function updateDebtAction(formData: FormData) {
+    if (!db) return { errors: { _server: ['A conexão com o banco de dados não foi estabelecida.'] } };
+
+    const values = {
+        userId: formData.get('userId'),
+        debtId: formData.get('debtId'),
+        paidValue: formData.get('paidValue'),
+        totalValue: formData.get('totalValue'),
+    };
+
+    const validatedFields = updateDebtSchema.safeParse(values);
+    if (!validatedFields.success) return { errors: validatedFields.error.flatten().fieldErrors };
+
+    const { userId, debtId, paidValue, totalValue } = validatedFields.data;
+    if (paidValue > totalValue) return { errors: { paidValue: ['O valor pago não pode ser maior que o valor total.'] } };
+
+    try {
+        const debtRef = doc(db, 'users', userId, 'debts', debtId);
+        await updateDoc(debtRef, { paidValue: paidValue });
+        revalidatePath('/dividas');
+        return { message: 'Dívida atualizada com sucesso.' };
+    } catch (e: any) {
+        console.error("Firebase Update Debt Error: ", e);
+        return { errors: { _server: [e.message || 'Falha ao atualizar dívida.'] } };
+    }
+}
+
+const deleteDebtSchema = z.object({
+    userId: z.string().min(1),
+    debtId: z.string().min(1),
+});
+
+export async function deleteDebtAction(formData: FormData) {
+    if (!db) return { errors: { _server: ['A conexão com o banco de dados não foi estabelecida.'] } };
+    const values = { userId: formData.get('userId'), debtId: formData.get('debtId') };
+    const validatedFields = deleteDebtSchema.safeParse(values);
+    if (!validatedFields.success) return { errors: validatedFields.error.flatten().fieldErrors };
+    const { userId, debtId } = validatedFields.data;
+
+    try {
+        await deleteDoc(doc(db, 'users', userId, 'debts', debtId));
+        revalidatePath('/dividas');
+        return { message: 'Dívida excluída com sucesso.' };
+    } catch (e: any) {
+        console.error("Firebase Delete Debt Error: ", e);
+        return { errors: { _server: [e.message || 'Falha ao excluir dívida.'] } };
     }
 }
