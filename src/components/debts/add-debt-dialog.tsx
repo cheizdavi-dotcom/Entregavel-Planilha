@@ -31,13 +31,18 @@ import {
 import { Input } from '@/components/ui/input';
 
 const formSchema = z.object({
-  creditorName: z.string().min(2, { message: 'O nome do credor é muito curto.' }).max(50),
+  creditorName: z.string().min(2, 'Nome muito curto.').max(50),
   totalValue: z.string()
     .refine(val => /^\d+([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido.' })
-    .refine(val => parseFloat(val.replace(',', '.')) > 0, { message: 'O valor total deve ser maior que zero.' }),
+    .refine(val => parseFloat(val.replace(',', '.')) > 0, { message: 'Valor deve ser maior que zero.' }),
   paidValue: z.string()
     .refine(val => /^\d+([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido.' })
-    .refine(val => parseFloat(val.replace(',', '.')) >= 0, { message: 'O valor pago não pode ser negativo.' }),
+    .refine(val => parseFloat(val.replace(',', '.')) >= 0, { message: 'Valor não pode ser negativo.' }),
+  interestRate: z.string()
+    .refine(val => /^\d+([,.]\d{1,2})?$/.test(val), { message: 'Taxa inválida.' })
+    .refine(val => parseFloat(val.replace(',', '.')) >= 0, { message: 'Taxa não pode ser negativa.' }),
+  dueDate: z.string()
+    .refine(val => /^\d+$/.test(val) && parseInt(val, 10) >= 1 && parseInt(val, 10) <= 31, { message: 'Dia inválido (1-31).' }),
 }).refine(data => parseFloat(data.paidValue.replace(',', '.')) <= parseFloat(data.totalValue.replace(',', '.')), {
     message: "O valor pago não pode ser maior que o valor total.",
     path: ["paidValue"],
@@ -61,6 +66,8 @@ export function AddDebtDialog({ open, onOpenChange }: AddDebtDialogProps) {
       creditorName: '',
       totalValue: '',
       paidValue: '0',
+      interestRate: '0',
+      dueDate: String(new Date().getDate()),
     },
   });
 
@@ -73,19 +80,21 @@ export function AddDebtDialog({ open, onOpenChange }: AddDebtDialogProps) {
     setIsSubmitting(true);
 
     try {
-      const totalValue = parseFloat(values.totalValue.replace(',', '.'));
-      const paidValue = parseFloat(values.paidValue.replace(',', '.'));
-
       const formData = new FormData();
       formData.append('userId', user.uid);
       formData.append('creditorName', values.creditorName);
-      formData.append('totalValue', totalValue.toString());
-      formData.append('paidValue', paidValue.toString());
+      formData.append('totalValue', values.totalValue.replace(',', '.'));
+      formData.append('paidValue', values.paidValue.replace(',', '.'));
+      formData.append('interestRate', values.interestRate.replace(',', '.'));
+      formData.append('dueDate', values.dueDate);
 
       const result = await addDebtAction(formData);
 
       if (result?.errors) {
-        toast({ variant: 'destructive', title: 'Erro ao Adicionar Dívida', description: result.errors._server?.[0] || 'Verifique os dados e tente novamente.' });
+        // Find first error and display it
+        const firstErrorField = Object.keys(result.errors)[0] as keyof typeof result.errors;
+        const firstErrorMessage = result.errors[firstErrorField]?.[0];
+        toast({ variant: 'destructive', title: 'Erro ao Adicionar Dívida', description: firstErrorMessage || 'Verifique os dados e tente novamente.' });
       } else {
         setDebts([...debts, result.data as Debt]);
         toast({ title: 'Sucesso!', description: 'Sua dívida foi adicionada.', className: 'bg-primary text-primary-foreground' });
@@ -101,13 +110,19 @@ export function AddDebtDialog({ open, onOpenChange }: AddDebtDialogProps) {
   
   React.useEffect(() => {
     if (open) {
-      form.reset();
+      form.reset({
+        creditorName: '',
+        totalValue: '',
+        paidValue: '0',
+        interestRate: '0',
+        dueDate: String(new Date().getDate()),
+      });
     }
   }, [open, form]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] glass-dark border-border/20">
+      <DialogContent className="sm:max-w-[500px] glass-dark border-border/20">
         <DialogHeader>
           <DialogTitle>Nova Dívida</DialogTitle>
           <DialogDescription>Cadastre uma dívida para começar a quitá-la.</DialogDescription>
@@ -136,7 +151,7 @@ export function AddDebtDialog({ open, onOpenChange }: AddDebtDialogProps) {
                     <FormLabel>Valor Total</FormLabel>
                     <FormControl>
                         <div className="relative">
-                        <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground">R$</span>
+                        <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground font-inter">R$</span>
                         <Input type="text" placeholder="1.000,00" {...field} className="pl-10 font-inter font-bold" disabled={isSubmitting}/>
                         </div>
                     </FormControl>
@@ -152,9 +167,41 @@ export function AddDebtDialog({ open, onOpenChange }: AddDebtDialogProps) {
                     <FormLabel>Valor Já Pago</FormLabel>
                     <FormControl>
                         <div className="relative">
-                        <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground">R$</span>
+                        <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground font-inter">R$</span>
                         <Input type="text" placeholder="100,00" {...field} className="pl-10 font-inter font-bold" disabled={isSubmitting}/>
                         </div>
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <FormField
+                control={form.control}
+                name="interestRate"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Juros Mensal (%)</FormLabel>
+                    <FormControl>
+                        <div className="relative">
+                        <span className="absolute inset-y-0 right-3 flex items-center text-muted-foreground font-inter">%</span>
+                        <Input type="text" placeholder="5,00" {...field} className="pr-10 font-inter font-bold" disabled={isSubmitting}/>
+                        </div>
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={form.control}
+                name="dueDate"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Dia do Vencimento</FormLabel>
+                    <FormControl>
+                        <Input type="number" min="1" max="31" placeholder="Ex: 10" {...field} className="font-inter font-bold" disabled={isSubmitting}/>
                     </FormControl>
                     <FormMessage />
                     </FormItem>

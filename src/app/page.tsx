@@ -21,6 +21,7 @@ import { UpdateGoalDialog } from '@/components/dashboard/update-goal-dialog';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AppSidebar from '@/components/app-sidebar';
+import { ImportDialog } from '@/components/importer/import-dialog';
 
 
 const DashboardSkeleton = () => (
@@ -61,6 +62,7 @@ export default function DashboardPage() {
   const [isAddTransactionOpen, setAddTransactionOpen] = React.useState(false);
   const [isAddGoalOpen, setAddGoalOpen] = React.useState(false);
   const [isUpdateGoalOpen, setUpdateGoalOpen] = React.useState(false);
+  const [isImportOpen, setImportOpen] = React.useState(false);
   const [selectedGoal, setSelectedGoal] = React.useState<Goal | null>(null);
 
   const dialogInitialDate = React.useMemo(() => {
@@ -130,7 +132,11 @@ export default function DashboardPage() {
 
   const MainContent = () => (
     <div className="flex flex-col gap-6 p-4 pt-8 md:p-8 md:pt-6">
-      <Header currentDate={currentDate} setCurrentDate={setCurrentDate} />
+      <Header 
+        currentDate={currentDate} 
+        setCurrentDate={setCurrentDate} 
+        onImportClick={() => setImportOpen(true)}
+      />
       
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <SummaryCards balance={balance} income={income} expenses={expenses} prevMonthSavings={prevMonthSavings} loading={loading}/>
@@ -183,6 +189,11 @@ export default function DashboardPage() {
             open={isUpdateGoalOpen}
             onOpenChange={setUpdateGoalOpen}
             goal={selectedGoal}
+        />
+        <ImportDialog
+            open={isImportOpen}
+            onOpenChange={setImportOpen}
+            currentMonthDate={currentDate}
         />
         
         <Button 

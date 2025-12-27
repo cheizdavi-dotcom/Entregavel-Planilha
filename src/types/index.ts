@@ -1,3 +1,5 @@
+'use client';
+
 import { User as FirebaseUser } from 'firebase/auth';
 
 export type Transaction = {
@@ -7,7 +9,7 @@ export type Transaction = {
   amount: number;
   description: string;
   category: string;
-  date: string;
+  date: string; // ISO String
   paymentMethod: 'Dinheiro' | 'Pix' | 'Cartão de Crédito';
   installments?: number;
 };
@@ -28,4 +30,12 @@ export type Debt = {
     creditorName: string;
     totalValue: number;
     paidValue: number;
+    interestRate: number;
+    dueDate: number; 
+};
+
+export type ParsedTransaction = {
+  date: string;
+  description: string;
+  amount: number;
 };

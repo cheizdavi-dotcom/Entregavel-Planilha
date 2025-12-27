@@ -41,7 +41,10 @@ export async function addTransactionAction(formData: FormData) {
     };
   }
   
-  const date = new Date(`${validatedFields.data.date}T12:00:00.000Z`);
+  const date = new Date(validatedFields.data.date);
+  if (isNaN(date.getTime())) {
+    return { errors: { date: ['Data inválida.'] } };
+  }
 
   const newTransaction = {
     id: uuidv4(),
@@ -141,25 +144,39 @@ export async function deleteGoalAction(formData: FormData) {
     return { message: 'Meta excluída com sucesso.', data: { id: validatedFields.data.goalId } };
 }
 
-
 const debtSchema = z.object({
   userId: z.string().min(1),
   creditorName: z.string().min(1, 'O nome do credor é obrigatório.').max(50),
   totalValue: z.coerce.number().positive('O valor total deve ser positivo.'),
   paidValue: z.coerce.number().min(0, 'O valor pago não pode ser negativo.'),
+  interestRate: z.coerce.number().min(0, 'A taxa de juros não pode ser negativa.'),
+  dueDate: z.coerce.number().int().min(1).max(31, 'O dia do vencimento deve ser entre 1 e 31.'),
+}).refine(data => data.paidValue <= data.totalValue, {
+  message: "O valor pago não pode ser maior que o valor total da dívida.",
+  path: ["paidValue"],
 });
 
 export async function addDebtAction(formData: FormData) {
   const values = {
-    userId: formData.get('userId'),
-    creditorName: formData.get('creditorName'),
-    totalValue: formData.get('totalValue'),
-    paidValue: formData.get('paidValue'),
+    userId: String(formData.get('userId')),
+    creditorName: String(formData.get('creditorName')),
+    totalValue: String(formData.get('totalValue')),
+    paidValue: String(formData.get('paidValue')),
+    interestRate: String(formData.get('interestRate')),
+    dueDate: String(formData.get('dueDate')),
   };
 
-  const validatedFields = debtSchema.safeParse(values);
-  if (!validatedFields.success) return { errors: validatedFields.error.flatten().fieldErrors };
-  if (validatedFields.data.paidValue > validatedFields.data.totalValue) return { errors: { paidValue: ['O valor pago não pode ser maior que o valor total.'] } };
+  const validatedFields = debtSchema.safeParse({
+    ...values,
+    totalValue: parseFloat(values.totalValue),
+    paidValue: parseFloat(values.paidValue),
+    interestRate: parseFloat(values.interestRate),
+    dueDate: parseInt(values.dueDate, 10),
+  });
+
+  if (!validatedFields.success) {
+    return { errors: validatedFields.error.flatten().fieldErrors };
+  }
   
   const newDebt = {
     id: uuidv4(),
@@ -169,6 +186,7 @@ export async function addDebtAction(formData: FormData) {
   revalidatePath('/dividas');
   return { message: 'Dívida validada com sucesso.', data: newDebt };
 }
+
 
 const updateDebtSchema = z.object({
     userId: z.string().min(1),

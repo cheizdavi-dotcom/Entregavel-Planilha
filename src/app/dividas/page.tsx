@@ -6,30 +6,44 @@ import type { Debt } from '@/types';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import AuthGuard from '@/components/auth-guard';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Plus, AlertTriangle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AddDebtDialog } from '@/components/debts/add-debt-dialog';
 import { UpdateDebtDialog } from '@/components/debts/update-debt-dialog';
 import AppSidebar from '@/components/app-sidebar';
+import { Badge } from '@/components/ui/badge';
 
-const DebtCard = ({ debt, onClick }: { debt: Debt, onClick: (debt: Debt) => void }) => {
+interface DebtCardProps {
+    debt: Debt;
+    onAmortizeClick: (debt: Debt) => void;
+    onDeleteClick: (debt: Debt) => void;
+}
+
+const DebtCard = ({ debt, onAmortizeClick }: DebtCardProps) => {
     const percentage = debt.totalValue > 0 ? (debt.paidValue / debt.totalValue) * 100 : 0;
     const remaining = debt.totalValue - debt.paidValue;
     const isPaid = remaining <= 0;
+    const hasHighInterest = debt.interestRate > 5;
 
     return (
-        <Card className="glass-dark cursor-pointer transition-all hover:-translate-y-1 hover:shadow-primary/20" onClick={() => onClick(debt)}>
+        <Card className="glass-dark flex flex-col justify-between transition-all hover:-translate-y-1 hover:shadow-primary/20">
             <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between">
                     <CardTitle className="text-lg">{debt.creditorName}</CardTitle>
                     <div className="flex items-center gap-2">
                         <span className={`text-xs font-semibold ${isPaid ? 'text-primary' : 'text-destructive'}`}>{isPaid ? 'Quitado' : 'Em Aberto'}</span>
                         <div className={`h-2.5 w-2.5 rounded-full ${isPaid ? 'bg-primary' : 'bg-destructive'}`}></div>
                     </div>
                 </div>
+                 {hasHighInterest && !isPaid && (
+                    <Badge variant="destructive" className="mt-2 w-fit">
+                        <AlertTriangle className="mr-1 h-3 w-3" />
+                        Juros Críticos: {debt.interestRate}%
+                    </Badge>
+                )}
             </CardHeader>
             <CardContent className="space-y-3">
                 <Progress value={percentage} className="h-3" indicatorClassName={isPaid ? "bg-primary" : "bg-destructive"}/>
@@ -44,6 +58,11 @@ const DebtCard = ({ debt, onClick }: { debt: Debt, onClick: (debt: Debt) => void
                     {formatCurrency(debt.paidValue)} / {formatCurrency(debt.totalValue)}
                 </div>
             </CardContent>
+            <CardFooter className="pt-4">
+                {!isPaid && (
+                     <Button onClick={() => onAmortizeClick(debt)} className="w-full">Amortizar</Button>
+                )}
+            </CardFooter>
         </Card>
     );
 };
@@ -58,6 +77,9 @@ const SkeletonCard = () => (
             <Skeleton className="h-4 w-48" />
             <Skeleton className="h-3 w-36" />
         </CardContent>
+        <CardFooter>
+            <Skeleton className="h-10 w-full" />
+        </CardFooter>
     </Card>
 );
 
@@ -80,7 +102,19 @@ export default function DividasPage() {
 
     const userDebts = React.useMemo(() => {
         if (!user) return [];
-        return debts.filter(d => d.userId === user.uid).sort((a,b) => (a.totalValue - a.paidValue) - (b.totalValue - b.paidValue));
+        // Ordena por dívidas não pagas primeiro, e depois pelo valor restante (maior para menor)
+        return debts
+            .filter(d => d.userId === user.uid)
+            .sort((a,b) => {
+                const aRemaining = a.totalValue - a.paidValue;
+                const bRemaining = b.totalValue - b.paidValue;
+                const aIsPaid = aRemaining <= 0;
+                const bIsPaid = bRemaining <= 0;
+
+                if (aIsPaid && !bIsPaid) return 1;
+                if (!aIsPaid && bIsPaid) return -1;
+                return bRemaining - aRemaining;
+            });
     }, [debts, user]);
 
     React.useEffect(() => {
@@ -88,10 +122,15 @@ export default function DividasPage() {
         setLoading(false);
     }, [user]);
 
-    const handleCardClick = (debt: Debt) => {
+    const handleAmortizeClick = (debt: Debt) => {
         setSelectedDebt(debt);
         setUpdateOpen(true);
     };
+
+    const handleDeleteClick = (debt: Debt) => {
+        // Futura implementação do modal de exclusão
+        console.log("Delete clicked", debt);
+    }
 
     return (
         <AuthGuard>
@@ -113,7 +152,12 @@ export default function DividasPage() {
                                 </>
                             ) : userDebts.length > 0 ? (
                                 userDebts.map(debt => (
-                                    <DebtCard key={debt.id} debt={debt} onClick={handleCardClick} />
+                                    <DebtCard 
+                                        key={debt.id} 
+                                        debt={debt} 
+                                        onAmortizeClick={handleAmortizeClick} 
+                                        onDeleteClick={handleDeleteClick}
+                                    />
                                 ))
                             ) : (
                                 <EmptyState onAddClick={() => setAddOpen(true)} />

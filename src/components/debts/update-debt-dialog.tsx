@@ -43,11 +43,10 @@ import {
 import { Input } from '@/components/ui/input';
 
 const formSchema = z.object({
-  paidValue: z.string()
+  paymentValue: z.string()
     .refine(val => /^\d+([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido.' })
-    .refine(val => parseFloat(val.replace(',', '.')) >= 0, { message: 'O valor não pode ser negativo.' }),
+    .refine(val => parseFloat(val.replace(',', '.')) > 0, { message: 'O valor do pagamento deve ser positivo.' }),
 });
-
 
 interface UpdateDebtDialogProps {
   open: boolean;
@@ -65,7 +64,7 @@ export function UpdateDebtDialog({ open, onOpenChange, debt }: UpdateDebtDialogP
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      paidValue: '0',
+      paymentValue: '',
     },
   });
   
@@ -79,10 +78,11 @@ export function UpdateDebtDialog({ open, onOpenChange, debt }: UpdateDebtDialogP
     
     setIsSubmitting(true);
     try {
-      const paidValueAsNumber = parseFloat(values.paidValue.replace(',', '.'));
+      const paymentValue = parseFloat(values.paymentValue.replace(',', '.'));
+      const newPaidValue = debt.paidValue + paymentValue;
       
-      if (paidValueAsNumber > debt.totalValue) {
-        form.setError('paidValue', { message: 'O valor pago não pode exceder o valor total da dívida.' });
+      if (newPaidValue > debt.totalValue) {
+        form.setError('paymentValue', { message: `O pagamento excede a dívida. Faltam ${formatCurrency(debt.totalValue - debt.paidValue)}.` });
         setIsSubmitting(false);
         return;
       }
@@ -90,15 +90,15 @@ export function UpdateDebtDialog({ open, onOpenChange, debt }: UpdateDebtDialogP
       const formData = new FormData();
       formData.append('userId', user.uid);
       formData.append('debtId', debt.id);
-      formData.append('paidValue', String(paidValueAsNumber));
-      formData.append('totalValue', String(debt.totalValue));
+      formData.append('paidValue', String(newPaidValue));
+      formData.append('totalValue', String(debt.totalValue)); // Required by action validation
 
       const result = await updateDebtAction(formData);
 
       if (result?.errors) {
-        toast({ variant: 'destructive', title: 'Erro ao Atualizar Dívida', description: result.errors._server?.[0] });
+        toast({ variant: 'destructive', title: 'Erro ao Amortizar Dívida', description: result.errors.paidValue?.[0] || result.errors._server?.[0] });
       } else {
-        const updatedDebts = debts.map(d => d.id === debt.id ? { ...d, paidValue: paidValueAsNumber } : d);
+        const updatedDebts = debts.map(d => d.id === debt.id ? { ...d, paidValue: newPaidValue } : d);
         setDebts(updatedDebts);
         toast({ title: 'Sucesso!', description: 'Sua dívida foi atualizada.', className: 'bg-primary text-primary-foreground' });
         handleClose();
@@ -137,11 +137,7 @@ export function UpdateDebtDialog({ open, onOpenChange, debt }: UpdateDebtDialogP
   }
   
   React.useEffect(() => {
-    if (debt) {
-      form.reset({
-        paidValue: String(debt.paidValue).replace('.', ',')
-      });
-    }
+    form.reset({ paymentValue: '' });
   }, [debt, form, open]);
 
   const remainingValue = debt ? debt.totalValue - debt.paidValue : 0;
@@ -150,7 +146,7 @@ export function UpdateDebtDialog({ open, onOpenChange, debt }: UpdateDebtDialogP
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px] glass-dark border-border/20">
         <DialogHeader>
-          <DialogTitle>Gerenciar Dívida: {debt?.creditorName || ''}</DialogTitle>
+          <DialogTitle>Amortizar Dívida: {debt?.creditorName || ''}</DialogTitle>
           <DialogDescription>
             {remainingValue > 0 
                 ? `Faltam ${formatCurrency(remainingValue)} para quitar esta dívida.`
@@ -162,10 +158,10 @@ export function UpdateDebtDialog({ open, onOpenChange, debt }: UpdateDebtDialogP
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="paidValue"
+              name="paymentValue"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Total Pago</FormLabel>
+                  <FormLabel>Valor a Pagar</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground">R$</span>
@@ -205,7 +201,7 @@ export function UpdateDebtDialog({ open, onOpenChange, debt }: UpdateDebtDialogP
                         <Button type="button" variant="ghost" disabled={isSubmitting}>Cancelar</Button>
                     </DialogClose>
                     <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? "Salvando..." : "Salvar Alterações"}
+                        {isSubmitting ? "Amortizando..." : "Amortizar"}
                     </Button>
                 </div>
             </DialogFooter>
