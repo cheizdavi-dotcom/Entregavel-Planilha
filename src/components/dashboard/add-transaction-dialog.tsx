@@ -125,7 +125,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialDate }: AddTra
         formData.append('amount', amountAsNumber.toString());
         formData.append('description', values.description);
         formData.append('category', values.category);
-        formData.append('date', values.date.toISOString().split('T')[0]);
+        formData.append('date', format(values.date, 'yyyy-MM-dd')); // Envia a data em um formato consistente
         formData.append('paymentMethod', values.paymentMethod);
         if (values.paymentMethod === 'Cartão de Crédito' && values.installments) {
             formData.append('installments', values.installments);
@@ -344,6 +344,7 @@ export function AddTransactionDialog({ open, onOpenChange, initialDate }: AddTra
                                 <SelectContent>
                                     {[...Array(12)].map((_, i) => (
                                         <SelectItem key={i+1} value={`${i+1}`}>{`${i+1}x`}</SelectItem>
+
                                     ))}
                                 </SelectContent>
                             </Select>
