@@ -58,7 +58,6 @@ function parseStatement(text: string, year: number, month: number): ParsedTransa
       const description = line.replace(dateMatch[0], '').replace(valueMatch[0], '').trim();
       const amount = parseFloat(valueMatch[1].replace(/\./g, '').replace(',', '.'));
       
-      // Heurística para ano: se o mês da transação for maior que o atual, é do ano passado.
       const transactionYear = monthIdx > month ? year - 1 : year;
       
       if (!isNaN(day) && monthIdx !== undefined && !isNaN(amount)) {
@@ -73,6 +72,13 @@ function parseStatement(text: string, year: number, month: number): ParsedTransa
 
   return transactions;
 }
+
+const exampleText = `COMO FUNCIONA: Copie o texto da sua fatura (do app ou do PDF) e cole aqui.
+Exemplo:
+25 DEZ   PAGAMENTO EM DEBITO - R$ 20,45
+24 DEZ   Uber*uber*trip       - R$ 15,00
+22 DEZ   IFOOD*IFOOD.COM       - R$ 54,90
+`;
 
 export function ImportDialog({ open, onOpenChange, currentMonthDate }: ImportDialogProps) {
   const { user } = useAuth();
@@ -151,15 +157,15 @@ export function ImportDialog({ open, onOpenChange, currentMonthDate }: ImportDia
           <DialogTitle>Importador Inteligente (Magic Paste)</DialogTitle>
           <DialogDescription>
             {step === 'paste' 
-              ? 'Copie e cole o conteúdo do seu extrato bancário ou fatura do cartão de crédito na caixa abaixo.'
-              : 'Revise as transações encontradas, ajuste as categorias e confirme a importação.'}
+              ? 'Abra a fatura do seu cartão (ou o extrato bancário) e simplesmente copie e cole o texto das transações aqui.'
+              : 'Revise as transações encontradas, ajuste as categorias se necessário e confirme a importação.'}
           </DialogDescription>
         </DialogHeader>
 
         {step === 'paste' && (
           <div className="space-y-4 py-4">
             <Textarea
-              placeholder="Ex: 12 DEZ Pagamento... R$ 20,00"
+              placeholder={exampleText}
               className="h-64"
               value={text}
               onChange={(e) => setText(e.target.value)}
