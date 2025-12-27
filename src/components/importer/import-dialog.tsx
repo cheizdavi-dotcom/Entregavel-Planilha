@@ -70,12 +70,14 @@ function parseStatement(text: string): ParsedTransaction[] {
     return transactions;
 }
 
-const exampleText = `COMO FUNCIONA: Copie o texto da sua fatura (do app ou do PDF) e cole aqui.
-O sistema tentará encontrar linhas com data e valor.
+const exampleText = `COMO FUNCIONA:
+Copie o texto da sua fatura ou extrato (do app do seu banco ou do PDF) e cole no campo abaixo.
+O sistema tentará encontrar transações em diversos formatos.
+
 Exemplos de formatos aceitos:
-26/12/2025 -5.7 Compra no débito - BaitaSuper
-26/12/2025 40 Transferência Recebida - Amanda
-25 DEZ   PAGAMENTO EM DEBITO - R$ 20,45
+26/12/2025 -15,50 Compra no débito - Supermercado
+26/12/2025 1200,00 Transferência Recebida de PIX
+25 DEZ   PAGAMENTO EM DEBITO - UBER TRIP - R$ 20,45
 `;
 
 export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProps) {
