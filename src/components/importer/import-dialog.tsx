@@ -23,6 +23,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { categorizeTransactions, type CategorizeTransactionsInput } from '@/ai/flows/categorize-transactions-flow';
 import { Loader2 } from 'lucide-react';
+import { Input } from '../ui/input';
 
 
 interface ImportDialogProps {
@@ -40,38 +41,49 @@ const availableCategories = (type: 'income' | 'expense') =>
     Object.values(categoriesConfig).filter(cat => cat.type === type);
 
 
+function sanitizeCurrency(valueStr: string): number {
+    // Remove tudo que não for dígito, vírgula ou sinal de menos
+    const cleaned = valueStr.replace(/[^\d,-]/g, '');
+    // Substitui a última vírgula por um ponto para decimais
+    const parts = cleaned.split(',');
+    let finalStr: string;
+
+    if (parts.length > 1) {
+        const integerPart = parts.slice(0, -1).join('');
+        const decimalPart = parts[parts.length - 1];
+        finalStr = `${integerPart}.${decimalPart}`;
+    } else {
+        finalStr = cleaned;
+    }
+    
+    return parseFloat(finalStr);
+}
+
 function parseStatement(text: string): ParsedTransaction[] {
     const lines = text.split('\n').filter(line => line.trim() !== '');
     const transactions: ParsedTransaction[] = [];
     
-    // Regex aprimorado para capturar múltiplos formatos
-    // Formato 1: DD/MM/YYYY [espaço] -VALOR,CENTAVOS [espaço] DESCRIÇÃO
-    // Formato 2: DD/MM/YYYY [espaço] VALOR,CENTAVOS [espaço] DESCRIÇÃO
-    // Formato 3: DD MMM [espaço] DESCRIÇÃO [espaço] - [espaço] R$ VALOR.CENTAVOS
-    const transactionRegex = /(\d{2}\/\d{2}(?:\/\d{4})?)\s+(-?[\d.,]+)\s+(.*)/;
-    const oldTransactionRegex = /(\d{1,2} [A-Z]{3})\s+(.*?)\s+-\s+R\$\s*([\d,]+\.\d{2})/;
-
+    const transactionRegex = /(\d{2}\/\d{2}(?:\/\d{4})?)\s+([\s\S]*?)\s+(-?R?\$\s?[\d.,]+)/;
 
     lines.forEach(line => {
-        let match = line.match(transactionRegex);
+        const match = line.match(transactionRegex);
         
         if (match) {
-            const [_, dateStr, valueStr, rawDescription] = match;
+            const [_, dateStr, rawDescription, valueStr] = match;
 
-            // Tratamento da Data
             const dateParts = dateStr.split('/');
             const day = parseInt(dateParts[0], 10);
             const month = parseInt(dateParts[1], 10) - 1;
             let year = dateParts.length === 3 ? parseInt(dateParts[2], 10) : new Date().getFullYear();
             if (year < 2000) year += 2000;
 
-            // Tratamento do Valor
-            const amount = parseFloat(valueStr.replace(/\./g, '').replace(',', '.'));
+            const amount = sanitizeCurrency(valueStr);
             
-            // Tratamento da Descrição
             let description = rawDescription.trim()
                 .replace(/Compra no débito - /i, '')
                 .replace(/pagamento em debito - /i, '')
+                .replace(/Transferência enviada - /i, '')
+                .replace(/Transferência recebida - /i, '')
                 .trim();
 
 
@@ -84,21 +96,20 @@ function parseStatement(text: string): ParsedTransaction[] {
                     category: ''
                 });
             }
-        } 
-        // Adicionar outros regex aqui se necessário
+        }
     });
 
     return transactions;
 }
 
+
 const exampleText = `COMO FUNCIONA:
-Copie o texto da sua fatura ou extrato (do app do seu banco ou do PDF) e cole no campo abaixo.
-O sistema tentará encontrar transações em diversos formatos.
+Copie o texto da sua fatura ou extrato e cole no campo abaixo. O sistema tentará encontrar transações em diversos formatos.
 
 Exemplos de formatos aceitos:
-26/12/2025 -15,50 Uber
-26/12/2025 1200,00 Salário
-25 DEZ PAGAMENTO EM DEBITO - UBER TRIP - R$ 20,45
+26/12/2025 Uber              -50,23
+26/12/2025 Salário           1200,00
+25/12/2025 Supermercado      -150,99
 `;
 
 export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProps) {
@@ -108,7 +119,6 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
   const [parsed, setParsed] = React.useState<ParsedTransaction[]>([]);
   const [step, setStep] = React.useState<'paste' | 'preview'>('paste');
   const [isProcessing, setIsProcessing] = React.useState(false);
-  const [categoryMap, setCategoryMap] = React.useState<Record<number, string>>({});
 
   const handleParseAndCategorize = async () => {
     if (!text) {
@@ -136,22 +146,20 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
         
         const categorizedData = parsedData.map((p, index) => ({
             ...p,
-            category: result.categorizedTransactions[index]?.category || ''
+            category: result.categorizedTransactions[index]?.category || (p.type === 'income' ? 'Outras Receitas' : 'Compras')
         }));
 
         setParsed(categorizedData);
 
-        const initialCategoryMap = categorizedData.reduce((acc, p, index) => {
-            acc[index] = p.category;
-            return acc;
-        }, {} as Record<number, string>);
-        setCategoryMap(initialCategoryMap);
-
     } catch (error: any) {
         console.error("AI Categorization Error:", error);
-        toast({ variant: 'destructive', title: 'Erro da IA', description: 'Ocorreu um erro ao categorizar as transações. Verifique as categorias manualmente.' });
-        // Se a IA falhar, continua sem as categorias, mas exibe a prévia
-        setParsed(parsedData);
+        toast({ variant: 'destructive', title: 'Erro da IA', description: 'Não foi possível categorizar. Ajuste as categorias manualmente.' });
+        // Fallback: Se a IA falhar, continua sem as categorias, mas exibe a prévia
+        const fallbackData = parsedData.map(p => ({
+            ...p,
+            category: p.type === 'income' ? 'Outras Receitas' : 'Compras' // Categoria padrão
+        }));
+        setParsed(fallbackData);
     } finally {
         setIsProcessing(false);
     }
@@ -162,14 +170,14 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
     setIsProcessing(true);
     
     try {
-      const newTransactions: Transaction[] = parsed.map((p, index) => ({
+      const newTransactions: Transaction[] = parsed.map((p) => ({
         id: uuidv4(),
         userId: user.uid,
         type: p.type,
         amount: p.amount,
         description: p.description,
         date: p.date,
-        category: categoryMap[index] || (p.type === 'income' ? 'Outras Receitas' : 'Compras'),
+        category: p.category || (p.type === 'income' ? 'Outras Receitas' : 'Compras'),
         paymentMethod: 'Pix', // Default
       }));
       
@@ -184,14 +192,24 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
     }
   };
 
-  const handleCategoryChange = (index: number, category: string) => {
-    setCategoryMap(prev => ({ ...prev, [index]: category }));
-  };
+  const handleFieldChange = (index: number, field: keyof ParsedTransaction, value: string | number) => {
+    const updated = [...parsed];
+    const transactionToUpdate = { ...updated[index] };
+
+    if (field === 'amount' && typeof value === 'string') {
+        transactionToUpdate[field] = parseFloat(value) || 0;
+    } else {
+        (transactionToUpdate[field] as any) = value;
+    }
+
+    updated[index] = transactionToUpdate;
+    setParsed(updated);
+};
+
 
   const handleClose = () => {
     setText('');
     setParsed([]);
-    setCategoryMap({});
     setStep('paste');
     onOpenChange(false);
   };
@@ -203,13 +221,13 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-dark border-border/20 max-w-3xl">
+      <DialogContent className="glass-dark border-border/20 max-w-4xl">
         <DialogHeader>
           <DialogTitle>Importador Inteligente (Magic Paste)</DialogTitle>
           <DialogDescription>
             {step === 'paste' 
               ? 'Abra a fatura do seu cartão (ou o extrato bancário) e simplesmente copie e cole o texto das transações aqui.'
-              : 'Revise as transações encontradas, ajuste as categorias se necessário e confirme a importação.'}
+              : 'Revise as transações encontradas, ajuste os dados se necessário e confirme a importação.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -231,13 +249,13 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
                 <p className="text-lg text-muted-foreground">Categorizando transações com IA...</p>
              </div>
           ) : (
-            <ScrollArea className="h-[50vh] pr-4">
+            <ScrollArea className="h-[60vh] pr-4">
                 <Table>
                     <TableHeader>
                     <TableRow>
                         <TableHead>Data</TableHead>
-                        <TableHead>Tipo</TableHead>
                         <TableHead>Descrição</TableHead>
+                        <TableHead>Tipo</TableHead>
                         <TableHead>Categoria</TableHead>
                         <TableHead className="text-right">Valor</TableHead>
                     </TableRow>
@@ -245,35 +263,46 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
                     <TableBody>
                     {parsed.map((p, index) => (
                         <TableRow key={index}>
-                        <TableCell className='font-medium'>{new Date(p.date).toLocaleDateString('pt-BR')}</TableCell>
-                        <TableCell>
-                            <Badge variant={p.type === 'income' ? 'default' : 'destructive'}>
-                                {p.type === 'income' ? 'Receita' : 'Despesa'}
-                            </Badge>
-                        </TableCell>
-                        <TableCell>{p.description}</TableCell>
-                        <TableCell>
-                            <Select 
-                                onValueChange={(value) => handleCategoryChange(index, value)} 
-                                value={categoryMap[index]}>
-                                <SelectTrigger className="w-[180px] h-8">
-                                    <SelectValue placeholder="Selecione..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {availableCategories(p.type).map(cat => (
-                                        <SelectItem key={cat.label} value={cat.label}>
-                                            <div className="flex items-center gap-2">
-                                                <CategoryIcon category={cat.label} className="h-4 w-4" />
-                                                {cat.label}
-                                            </div>
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </TableCell>
-                        <TableCell className={`text-right font-inter font-bold ${p.type === 'income' ? 'text-primary' : 'text-foreground'}`}>
-                            {formatCurrency(p.amount)}
-                        </TableCell>
+                            <TableCell className='font-medium'>{new Date(p.date).toLocaleDateString('pt-BR')}</TableCell>
+                             <TableCell>
+                                <Input 
+                                    value={p.description} 
+                                    onChange={(e) => handleFieldChange(index, 'description', e.target.value)}
+                                    className="h-8"
+                                />
+                            </TableCell>
+                            <TableCell>
+                                <Badge variant={p.type === 'income' ? 'default' : 'destructive'}>
+                                    {p.type === 'income' ? 'Receita' : 'Despesa'}
+                                </Badge>
+                            </TableCell>
+                            <TableCell>
+                                <Select 
+                                    onValueChange={(value) => handleFieldChange(index, 'category', value)} 
+                                    value={p.category}>
+                                    <SelectTrigger className="w-[180px] h-8">
+                                        <SelectValue placeholder="Selecione..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {availableCategories(p.type).map(cat => (
+                                            <SelectItem key={cat.label} value={cat.label}>
+                                                <div className="flex items-center gap-2">
+                                                    <CategoryIcon category={cat.label} className="h-4 w-4" />
+                                                    {cat.label}
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </TableCell>
+                            <TableCell className="text-right">
+                                <Input 
+                                    type="number"
+                                    value={p.amount} 
+                                    onChange={(e) => handleFieldChange(index, 'amount', e.target.value)}
+                                    className={`h-8 font-inter font-bold text-right ${p.type === 'income' ? 'text-primary' : 'text-foreground'}`}
+                                />
+                            </TableCell>
                         </TableRow>
                     ))}
                     </TableBody>

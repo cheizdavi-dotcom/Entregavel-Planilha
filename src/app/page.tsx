@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useLocalStorage } from '@/hooks/use-local-storage';
-import type { Transaction, Goal } from '@/types';
+import type { Transaction, Goal, Debt } from '@/types';
 import { startOfMonth, endOfMonth, subMonths, isSameMonth } from 'date-fns';
 
 import AuthGuard from '@/components/auth-guard';
@@ -55,6 +55,8 @@ const DashboardSkeleton = () => (
 export default function DashboardPage() {
   const { user } = useAuth();
   const [allTransactions, setAllTransactions] = useLocalStorage<Transaction[]>('transactions', []);
+  const [goals, setGoals] = useLocalStorage<Goal[]>('goals', []);
+  const [debts, setDebts] = useLocalStorage<Debt[]>('debts', []);
   const [loading, setLoading] = React.useState(true);
   const [currentDate, setCurrentDate] = React.useState(new Date());
 
@@ -78,6 +80,12 @@ export default function DashboardPage() {
     setAllTransactions(prev => [...prev, ...newTransactions]);
   };
   
+  const handleResetData = () => {
+    setAllTransactions([]);
+    setGoals([]);
+    setDebts([]);
+  };
+
   React.useEffect(() => {
     // Apenas simula o carregamento inicial, já que o localStorage é síncrono.
     setLoading(false);
@@ -140,6 +148,7 @@ export default function DashboardPage() {
         currentDate={currentDate} 
         setCurrentDate={setCurrentDate} 
         onImportClick={() => setImportOpen(true)}
+        onResetData={handleResetData}
       />
       
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

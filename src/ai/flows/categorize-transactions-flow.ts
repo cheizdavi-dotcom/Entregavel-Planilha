@@ -60,7 +60,7 @@ Here are the available categories:
 Analyze each transaction in the list below. Based on its description, assign the most logical category from the lists above.
 If the description is unclear, use your best judgment. For generic store names, 'Compras' is a good default. For income without a clear source, use 'Outras Receitas'.
 
-The output must be a valid JSON object matching the requested schema.
+You MUST return ONLY a valid JSON object matching the requested schema. Do not use Markdown or any other formatting.
 
 Transactions to categorize:
 {{{json transactions}}}
