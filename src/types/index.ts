@@ -35,7 +35,8 @@ export type Debt = {
 };
 
 export type ParsedTransaction = {
-  date: string;
+  date: string; // ISO String
   description: string;
   amount: number;
+  type: 'income' | 'expense';
 };

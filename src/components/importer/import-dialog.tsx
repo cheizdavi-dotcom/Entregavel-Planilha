@@ -3,7 +3,6 @@
 import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { useLocalStorage } from '@/hooks/use-local-storage';
 import type { Transaction, ParsedTransaction } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
@@ -26,7 +25,7 @@ import { Badge } from '@/components/ui/badge';
 interface ImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentMonthDate: Date;
+  onConfirm: (newTransactions: Transaction[]) => void;
 }
 
 const CategoryIcon = ({ category, className }: { category: string; className?: string }) => {
@@ -79,10 +78,9 @@ Exemplos de formatos aceitos:
 25 DEZ   PAGAMENTO EM DEBITO - R$ 20,45
 `;
 
-export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
+export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [transactions, setTransactions] = useLocalStorage<Transaction[]>('transactions', []);
   const [text, setText] = React.useState('');
   const [parsed, setParsed] = React.useState<ParsedTransaction[]>([]);
   const [step, setStep] = React.useState<'paste' | 'preview'>('paste');
@@ -118,8 +116,9 @@ export function ImportDialog({ open, onOpenChange }: ImportDialogProps) {
         category: categoryMap[index] || (p.type === 'income' ? 'Outras Receitas' : 'Compras'),
         paymentMethod: 'Pix', // Default
       }));
+      
+      onConfirm(newTransactions);
 
-      setTransactions([...transactions, ...newTransactions]);
       toast({ title: 'Sucesso!', description: `${newTransactions.length} transações foram importadas.`, className: 'bg-primary text-primary-foreground' });
       handleClose();
     } catch (e: any) {

@@ -73,6 +73,10 @@ export default function DashboardPage() {
     setSelectedGoal(goal);
     setUpdateGoalOpen(true);
   };
+
+  const handleImportConfirm = (newTransactions: Transaction[]) => {
+    setAllTransactions(prev => [...prev, ...newTransactions]);
+  };
   
   React.useEffect(() => {
     // Apenas simula o carregamento inicial, já que o localStorage é síncrono.
@@ -193,7 +197,7 @@ export default function DashboardPage() {
         <ImportDialog
             open={isImportOpen}
             onOpenChange={setImportOpen}
-            currentMonthDate={currentDate}
+            onConfirm={handleImportConfirm}
         />
         
         <Button 
