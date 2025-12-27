@@ -64,7 +64,9 @@ export default function DashboardPage() {
   const [isUpdateGoalOpen, setUpdateGoalOpen] = React.useState(false);
   const [selectedGoal, setSelectedGoal] = React.useState<Goal | null>(null);
 
-  const dialogInitialDate = isSameMonth(currentDate, new Date()) ? new Date() : startOfMonth(currentDate);
+  const dialogInitialDate = React.useMemo(() => {
+    return isSameMonth(currentDate, new Date()) ? new Date() : startOfMonth(currentDate);
+  }, [currentDate]);
 
   const handleGoalClick = (goal: Goal) => {
     setSelectedGoal(goal);
