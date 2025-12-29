@@ -53,12 +53,15 @@ const DebtCard = ({ debt, onAmortizeClick, onDeleteClick }: DebtCardProps) => {
                         <div className={`h-2.5 w-2.5 rounded-full ${isPaid ? 'bg-primary' : 'bg-destructive'}`}></div>
                     </div>
                 </div>
-                 {hasHighInterest && !isPaid && (
-                    <Badge variant="destructive" className="mt-2 w-fit">
-                        <AlertTriangle className="mr-1 h-3 w-3" />
-                        Juros Críticos: {debt.interestRate}%
-                    </Badge>
-                )}
+                 <div className='flex items-center gap-2 mt-2'>
+                    {hasHighInterest && !isPaid && (
+                        <Badge variant="destructive" className="w-fit">
+                            <AlertTriangle className="mr-1 h-3 w-3" />
+                            Juros Críticos: {debt.interestRate}%
+                        </Badge>
+                    )}
+                     <Badge variant="outline">Vence dia {debt.dueDate}</Badge>
+                 </div>
             </CardHeader>
             <CardContent className="space-y-3">
                 <Progress value={percentage} className="h-3" indicatorClassName={isPaid ? "bg-primary" : "bg-destructive"}/>

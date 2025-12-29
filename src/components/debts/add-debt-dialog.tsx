@@ -27,6 +27,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const formSchema = z.object({
   creditorName: z.string().min(2, 'Nome muito curto.').max(50),
@@ -191,17 +192,26 @@ export function AddDebtDialog({ open, onOpenChange }: AddDebtDialogProps) {
                 )}
                 />
                 <FormField
-                control={form.control}
-                name="dueDate"
-                render={({ field }) => (
+                  control={form.control}
+                  name="dueDate"
+                  render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Dia do Vencimento</FormLabel>
-                    <FormControl>
-                        <Input type="number" min="1" max="31" placeholder="Ex: 10" {...field} className="font-inter font-bold" disabled={isSubmitting}/>
-                    </FormControl>
-                    <FormMessage />
+                        <FormLabel>Dia do Vencimento</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Escolha o dia" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {[...Array(31)].map((_, i) => (
+                                    <SelectItem key={i+1} value={`${i+1}`}>{`Todo dia ${i+1}`}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
                     </FormItem>
-                )}
+                  )}
                 />
             </div>
             <DialogFooter className='pt-4'>
