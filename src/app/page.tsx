@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/use-auth';
 import type { Transaction, Goal, Debt } from '@/types';
 import { startOfMonth, endOfMonth, subMonths, isSameMonth } from 'date-fns';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query, where, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, orderBy, addDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 
 import AuthGuard from '@/components/auth-guard';
 import Header from '@/components/dashboard/header';
@@ -23,6 +23,7 @@ import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AppSidebar from '@/components/app-sidebar';
 import { ImportDialog } from '@/components/importer/import-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 const DashboardSkeleton = () => (
     <div className="flex flex-col min-h-screen bg-background">
@@ -53,9 +54,9 @@ const DashboardSkeleton = () => (
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [allTransactions, setAllTransactions] = React.useState<Transaction[]>([]);
   const [goals, setGoals] = React.useState<Goal[]>([]);
-  const [debts, setDebts] = React.useState<Debt[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [currentDate, setCurrentDate] = React.useState(new Date());
 
@@ -83,15 +84,34 @@ export default function DashboardPage() {
         setLoading(false);
       }, (error) => {
           console.error("Error fetching transactions:", error);
+          toast({ variant: 'destructive', title: 'Erro ao buscar transações', description: error.message });
           setLoading(false);
       });
 
       return () => unsubscribe();
-    } else {
+    } else if (!user) {
         setAllTransactions([]);
         setLoading(false);
     }
-  }, [user]);
+  }, [user, toast]);
+
+  React.useEffect(() => {
+      if (user && db) {
+        const q = query(collection(db, `users/${user.uid}/goals`));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+          const goalsData: Goal[] = [];
+          snapshot.forEach(doc => goalsData.push({ id: doc.id, ...doc.data()} as Goal));
+          setGoals(goalsData);
+        }, (error) => {
+          console.error("Error fetching goals:", error);
+          toast({ variant: 'destructive', title: 'Erro ao buscar metas', description: error.message });
+        });
+
+        return () => unsubscribe();
+      } else if (!user) {
+        setGoals([]);
+      }
+    }, [user, toast]);
 
   const handleGoalClick = (goal: Goal) => {
     setSelectedGoal(goal);
@@ -100,25 +120,58 @@ export default function DashboardPage() {
 
   const handleImportConfirm = async (newTransactions: Omit<Transaction, 'id' | 'userId'>[]) => {
     if (!user || !db) return;
-    const batch = newTransactions.map(t => {
-      const transactionData = {
-        ...t,
-        userId: user.uid,
-        createdAt: serverTimestamp(),
-      };
-      return addDoc(collection(db, `users/${user.uid}/transactions`), transactionData);
-    });
-    await Promise.all(batch);
+
+    try {
+        const batch = writeBatch(db);
+        newTransactions.forEach(t => {
+            const docRef = doc(collection(db, `users/${user.uid}/transactions`));
+            const transactionData = {
+                ...t,
+                userId: user.uid,
+                createdAt: serverTimestamp(),
+            };
+            batch.set(docRef, transactionData);
+        });
+        await batch.commit();
+        toast({ title: 'Sucesso!', description: `${newTransactions.length} transações importadas.` });
+    } catch(error: any) {
+        console.error("Error batch importing transactions:", error);
+        toast({ variant: 'destructive', title: 'Erro ao Importar', description: error.message });
+    }
   };
   
   const handleResetData = async () => {
-    // This is a placeholder. A real implementation would require a backend function
-    // to recursively delete all subcollections for a user.
-    // For now, we clear the local state as a demonstration.
-    console.warn("Resetting data is a complex backend operation. This is a local simulation.");
-    setAllTransactions([]);
-    setGoals([]);
-    setDebts([]);
+    if (!user || !db) {
+      toast({ variant: 'destructive', title: 'Não foi possível resetar', description: 'Usuário ou banco de dados não encontrado.' });
+      return;
+    }
+    
+    // Esta é uma operação perigosa e complexa. Em um app de produção,
+    // isso seria feito por uma Cloud Function que deleta recursivamente.
+    // Aqui, vamos deletar os documentos das coleções principais.
+    console.warn("Resetting data is a destructive operation.");
+    
+    const collections = ['transactions', 'goals', 'debts'];
+    try {
+      const batch = writeBatch(db);
+      for (const col of collections) {
+        const colRef = collection(db, `users/${user.uid}/${col}`);
+        const snapshot = await getDocs(colRef);
+        snapshot.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+      }
+      await batch.commit();
+      
+      // Forçando a atualização do estado local para refletir a limpeza
+      setAllTransactions([]);
+      setGoals([]);
+      
+      toast({ title: "Dados Resetados", description: "Suas transações, metas e dívidas foram apagadas." });
+    } catch (error: any) {
+      console.error("Error resetting data:", error);
+      toast({ variant: 'destructive', title: 'Erro ao Resetar', description: 'Não foi possível apagar todos os dados.' });
+    }
   };
 
   const { transactions, prevMonthTransactions } = React.useMemo(() => {
@@ -197,6 +250,7 @@ export default function DashboardPage() {
               loading={loading} 
               onAddGoalClick={() => setAddGoalOpen(true)}
               onGoalClick={handleGoalClick}
+              goals={goals}
             />
         </div>
       </div>
@@ -248,3 +302,5 @@ export default function DashboardPage() {
     </AuthGuard>
   );
 }
+
+    

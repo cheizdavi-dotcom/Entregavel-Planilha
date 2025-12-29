@@ -12,16 +12,14 @@ import { Plus } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/utils';
 import type { Goal } from '@/types';
-import { useAuth } from '@/hooks/use-auth';
 import * as React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query } from 'firebase/firestore';
 
 interface GoalsCardProps {
     loading: boolean;
     onAddGoalClick: () => void;
     onGoalClick: (goal: Goal) => void;
+    goals: Goal[];
 }
 
 interface GoalItemProps {
@@ -66,33 +64,7 @@ const SkeletonLoader = () => (
     </div>
 );
 
-const GoalsCard: React.FC<GoalsCardProps> = ({ loading: pageLoading, onAddGoalClick, onGoalClick }) => {
-    const { user } = useAuth();
-    const [goals, setGoals] = React.useState<Goal[]>([]);
-    const [internalLoading, setInternalLoading] = React.useState(true);
-
-    React.useEffect(() => {
-      if (user && db) {
-        setInternalLoading(true);
-        const q = query(collection(db, `users/${user.uid}/goals`));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-          const goalsData: Goal[] = [];
-          snapshot.forEach(doc => goalsData.push({ id: doc.id, ...doc.data()} as Goal));
-          setGoals(goalsData);
-          setInternalLoading(false);
-        }, (error) => {
-          console.error("Error fetching goals:", error);
-          setInternalLoading(false);
-        });
-
-        return () => unsubscribe();
-      } else {
-        setGoals([]);
-        setInternalLoading(false);
-      }
-    }, [user]);
-
-    const isLoading = pageLoading || internalLoading;
+const GoalsCard: React.FC<GoalsCardProps> = ({ loading, onAddGoalClick, onGoalClick, goals }) => {
     const hasGoals = goals.length > 0;
 
     return (
@@ -102,7 +74,7 @@ const GoalsCard: React.FC<GoalsCardProps> = ({ loading: pageLoading, onAddGoalCl
                 <CardDescription>Acompanhe seu progresso para alcançar seus objetivos.</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col justify-center">
-                {isLoading ? (
+                {loading ? (
                     <SkeletonLoader />
                 ) : hasGoals ? (
                     <div className="space-y-4">
@@ -122,3 +94,5 @@ const GoalsCard: React.FC<GoalsCardProps> = ({ loading: pageLoading, onAddGoalCl
 };
 
 export default GoalsCard;
+
+    
