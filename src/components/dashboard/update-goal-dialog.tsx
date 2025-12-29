@@ -7,7 +7,6 @@ import { z } from 'zod';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { updateGoalAction, deleteGoalAction } from '@/app/actions';
-import { useLocalStorage } from '@/hooks/use-local-storage';
 import type { Goal } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 
@@ -60,7 +59,6 @@ export function UpdateGoalDialog({ open, onOpenChange, goal }: UpdateGoalDialogP
   const [isDeleting, setIsDeleting] = React.useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const [goals, setGoals] = useLocalStorage<Goal[]>('goals', []);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -105,8 +103,6 @@ export function UpdateGoalDialog({ open, onOpenChange, goal }: UpdateGoalDialogP
             toast({ variant: 'destructive', title: 'Erro ao Atualizar Meta', description: result.errors._server?.[0] });
         }
       } else {
-        const updatedGoals = goals.map(g => g.id === goal.id ? { ...g, currentValue: currentValueAsNumber } : g);
-        setGoals(updatedGoals);
         toast({ title: 'Sucesso!', description: 'Sua meta foi atualizada.', className: 'bg-primary text-primary-foreground' });
         handleClose();
       }
@@ -132,8 +128,6 @@ export function UpdateGoalDialog({ open, onOpenChange, goal }: UpdateGoalDialogP
       if (result?.errors) {
         toast({ variant: 'destructive', title: 'Erro ao Excluir Meta', description: result.errors._server?.[0] });
       } else {
-        const updatedGoals = goals.filter(g => g.id !== goal.id);
-        setGoals(updatedGoals);
         toast({ title: 'Meta Excluída', description: 'Seu objetivo foi removido com sucesso.' });
         handleClose();
       }

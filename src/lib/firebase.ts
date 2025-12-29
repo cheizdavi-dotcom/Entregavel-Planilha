@@ -1,6 +1,8 @@
+'use client';
+
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
-// Removido: import { getFirestore, type Firestore } from 'firebase/firestore';
+import { getFirestore, type Firestore } from 'firebase/firestore';
 import { firebaseConfig } from './firebase-config';
 
 // Validação para garantir que a configuração não está vazia.
@@ -8,13 +10,13 @@ const isFirebaseConfigValid = firebaseConfig && firebaseConfig.apiKey;
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
-// Removido: let db: Firestore | null = null;
+let db: Firestore | null = null;
 
 if (isFirebaseConfigValid) {
   // Inicializa o Firebase apenas se a configuração for válida e se não houver apps inicializados.
   app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
   auth = getAuth(app);
-  // Removido: db = getFirestore(app);
+  db = getFirestore(app);
 } else {
   // Adiciona um aviso no console do desenvolvedor se a configuração estiver faltando.
   // Isso só será visível no ambiente de desenvolvimento.
@@ -28,5 +30,4 @@ if (isFirebaseConfigValid) {
   }
 }
 
-// Removida a exportação do 'db'
-export { app, auth };
+export { app, auth, db };

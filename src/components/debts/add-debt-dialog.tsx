@@ -7,8 +7,6 @@ import { z } from 'zod';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { addDebtAction } from '@/app/actions';
-import { useLocalStorage } from '@/hooks/use-local-storage';
-import type { Debt } from '@/types';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -58,7 +56,6 @@ export function AddDebtDialog({ open, onOpenChange }: AddDebtDialogProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const [debts, setDebts] = useLocalStorage<Debt[]>('debts', []);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -96,7 +93,6 @@ export function AddDebtDialog({ open, onOpenChange }: AddDebtDialogProps) {
         const firstErrorMessage = result.errors[firstErrorField]?.[0];
         toast({ variant: 'destructive', title: 'Erro ao Adicionar Dívida', description: firstErrorMessage || 'Verifique os dados e tente novamente.' });
       } else {
-        setDebts([...debts, result.data as Debt]);
         toast({ title: 'Sucesso!', description: 'Sua dívida foi adicionada.', className: 'bg-primary text-primary-foreground' });
         form.reset();
         onOpenChange(false);

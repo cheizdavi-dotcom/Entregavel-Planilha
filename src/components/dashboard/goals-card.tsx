@@ -13,9 +13,10 @@ import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/utils';
 import type { Goal } from '@/types';
 import { useAuth } from '@/hooks/use-auth';
-import { useLocalStorage } from '@/hooks/use-local-storage';
 import * as React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, query } from 'firebase/firestore';
 
 interface GoalsCardProps {
     loading: boolean;
@@ -67,22 +68,32 @@ const SkeletonLoader = () => (
 
 const GoalsCard: React.FC<GoalsCardProps> = ({ loading: pageLoading, onAddGoalClick, onGoalClick }) => {
     const { user } = useAuth();
-    const [goals, setGoals] = useLocalStorage<Goal[]>('goals', []);
+    const [goals, setGoals] = React.useState<Goal[]>([]);
     const [internalLoading, setInternalLoading] = React.useState(true);
 
-    const userGoals = React.useMemo(() => {
-        if (!user) return [];
-        return goals.filter(g => g.userId === user.uid);
-    }, [goals, user]);
-    
     React.useEffect(() => {
-      // Simula o carregamento, já que localStorage é síncrono
-      setInternalLoading(false);
+      if (user && db) {
+        setInternalLoading(true);
+        const q = query(collection(db, `users/${user.uid}/goals`));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+          const goalsData: Goal[] = [];
+          snapshot.forEach(doc => goalsData.push({ id: doc.id, ...doc.data()} as Goal));
+          setGoals(goalsData);
+          setInternalLoading(false);
+        }, (error) => {
+          console.error("Error fetching goals:", error);
+          setInternalLoading(false);
+        });
+
+        return () => unsubscribe();
+      } else {
+        setGoals([]);
+        setInternalLoading(false);
+      }
     }, [user]);
 
-
     const isLoading = pageLoading || internalLoading;
-    const hasGoals = userGoals.length > 0;
+    const hasGoals = goals.length > 0;
 
     return (
         <Card className="glass-dark h-full flex flex-col">
@@ -95,7 +106,7 @@ const GoalsCard: React.FC<GoalsCardProps> = ({ loading: pageLoading, onAddGoalCl
                     <SkeletonLoader />
                 ) : hasGoals ? (
                     <div className="space-y-4">
-                        {userGoals.map((goal) => (
+                        {goals.map((goal) => (
                             <GoalItem key={goal.id} goal={goal} onClick={onGoalClick} />
                         ))}
                          <Button variant="outline" size="sm" className="w-full mt-4" onClick={onAddGoalClick}>

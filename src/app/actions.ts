@@ -2,13 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { v4 as uuidv4 } from 'uuid'; // Precisaremos de UUIDs para os IDs locais
-
-// NOTA: Como estamos usando localStorage, as 'actions' não vão realmente interagir
-// com um servidor. Elas apenas validam e retornam os dados para que o cliente
-// possa salvá-los no localStorage. Esta é uma adaptação do padrão.
-// O ideal seria que o cliente fizesse tudo, mas vamos manter a estrutura
-// para minimizar as mudanças no lado do cliente.
+import { db } from '@/lib/firebase';
+import { collection, addDoc, doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 
 const transactionSchema = z.object({
   userId: z.string().min(1),
@@ -40,26 +35,29 @@ export async function addTransactionAction(formData: FormData) {
       errors: validatedFields.error.flatten().fieldErrors,
     };
   }
+
+  if (!db) {
+    return { errors: { _server: ['O banco de dados não está configurado.'] } };
+  }
   
   const date = new Date(validatedFields.data.date);
   if (isNaN(date.getTime())) {
     return { errors: { date: ['Data inválida.'] } };
   }
 
-  const newTransaction = {
-    id: uuidv4(),
-    ...validatedFields.data,
-    date: date.toISOString(),
-  };
-
-  // Em vez de salvar no DB, retornamos o objeto para o cliente salvar.
-  revalidatePath('/');
-  return {
-    message: 'Transação validada com sucesso.',
-    data: newTransaction
-  };
+  try {
+    const docRef = await addDoc(collection(db, `users/${validatedFields.data.userId}/transactions`), {
+      ...validatedFields.data,
+      date: date.toISOString(),
+      createdAt: serverTimestamp(),
+    });
+    revalidatePath('/');
+    return { message: 'Transação adicionada com sucesso.', data: { id: docRef.id, ...validatedFields.data } };
+  } catch (error) {
+    console.error("Error adding transaction:", error);
+    return { errors: { _server: ['Não foi possível adicionar a transação.'] } };
+  }
 }
-
 
 const goalSchema = z.object({
   userId: z.string().min(1),
@@ -79,18 +77,19 @@ export async function addGoalAction(formData: FormData) {
   const validatedFields = goalSchema.safeParse(values);
 
   if (!validatedFields.success) {
-    return {
-      errors: validatedFields.error.flatten().fieldErrors,
-    };
+    return { errors: validatedFields.error.flatten().fieldErrors };
   }
+  
+  if (!db) return { errors: { _server: ['O banco de dados não está configurado.'] } };
 
-  const newGoal = {
-    id: uuidv4(),
-    ...validatedFields.data,
-  };
-
-  revalidatePath('/');
-  return { message: 'Meta validada com sucesso.', data: newGoal };
+  try {
+    const docRef = await addDoc(collection(db, `users/${validatedFields.data.userId}/goals`), validatedFields.data);
+    revalidatePath('/');
+    return { message: 'Meta adicionada com sucesso.', data: { id: docRef.id, ...validatedFields.data } };
+  } catch (error) {
+    console.error("Error adding goal:", error);
+    return { errors: { _server: ['Não foi possível adicionar a meta.'] } };
+  }
 }
 
 const updateGoalSchema = z.object({
@@ -109,20 +108,22 @@ export async function updateGoalAction(formData: FormData) {
     };
 
     const validatedFields = updateGoalSchema.safeParse(values);
-    if (!validatedFields.success) {
-        return { errors: validatedFields.error.flatten().fieldErrors };
-    }
+    if (!validatedFields.success) return { errors: validatedFields.error.flatten().fieldErrors };
+    if (!db) return { errors: { _server: ['O banco de dados não está configurado.'] } };
 
     const { userId, goalId, currentValue, totalValue } = validatedFields.data;
-
-    if (currentValue > totalValue) {
-        return { errors: { currentValue: ['O valor guardado não pode ser maior que o valor total da meta.'] } };
-    }
+    if (currentValue > totalValue) return { errors: { currentValue: ['O valor guardado não pode ser maior que o valor total da meta.'] } };
     
-    revalidatePath('/');
-    return { message: 'Meta atualizada com sucesso.', data: { id: goalId, currentValue } };
+    try {
+      const goalRef = doc(db, `users/${userId}/goals`, goalId);
+      await updateDoc(goalRef, { currentValue });
+      revalidatePath('/');
+      return { message: 'Meta atualizada com sucesso.', data: { id: goalId, currentValue } };
+    } catch (error) {
+      console.error("Error updating goal:", error);
+      return { errors: { _server: ['Não foi possível atualizar a meta.'] } };
+    }
 }
-
 
 const deleteGoalSchema = z.object({
     userId: z.string().min(1),
@@ -130,18 +131,21 @@ const deleteGoalSchema = z.object({
 });
 
 export async function deleteGoalAction(formData: FormData) {
-    const values = {
-        userId: formData.get('userId'),
-        goalId: formData.get('goalId'),
-    };
-
+    const values = { userId: formData.get('userId'), goalId: formData.get('goalId') };
     const validatedFields = deleteGoalSchema.safeParse(values);
-    if (!validatedFields.success) {
-        return { errors: validatedFields.error.flatten().fieldErrors };
+    if (!validatedFields.success) return { errors: validatedFields.error.flatten().fieldErrors };
+    if (!db) return { errors: { _server: ['O banco de dados não está configurado.'] } };
+    
+    const { userId, goalId } = validatedFields.data;
+    try {
+      const goalRef = doc(db, `users/${userId}/goals`, goalId);
+      await deleteDoc(goalRef);
+      revalidatePath('/');
+      return { message: 'Meta excluída com sucesso.', data: { id: goalId } };
+    } catch (error) {
+      console.error("Error deleting goal:", error);
+      return { errors: { _server: ['Não foi possível excluir a meta.'] } };
     }
-
-    revalidatePath('/');
-    return { message: 'Meta excluída com sucesso.', data: { id: validatedFields.data.goalId } };
 }
 
 const debtSchema = z.object({
@@ -174,19 +178,18 @@ export async function addDebtAction(formData: FormData) {
     dueDate: parseInt(values.dueDate, 10),
   });
 
-  if (!validatedFields.success) {
-    return { errors: validatedFields.error.flatten().fieldErrors };
+  if (!validatedFields.success) return { errors: validatedFields.error.flatten().fieldErrors };
+  if (!db) return { errors: { _server: ['O banco de dados não está configurado.'] } };
+  
+  try {
+    const docRef = await addDoc(collection(db, `users/${validatedFields.data.userId}/debts`), validatedFields.data);
+    revalidatePath('/dividas');
+    return { message: 'Dívida adicionada com sucesso.', data: { id: docRef.id, ...validatedFields.data } };
+  } catch (error) {
+    console.error("Error adding debt:", error);
+    return { errors: { _server: ['Não foi possível adicionar a dívida.'] } };
   }
-  
-  const newDebt = {
-    id: uuidv4(),
-    ...validatedFields.data,
-  };
-  
-  revalidatePath('/dividas');
-  return { message: 'Dívida validada com sucesso.', data: newDebt };
 }
-
 
 const updateDebtSchema = z.object({
     userId: z.string().min(1),
@@ -205,12 +208,20 @@ export async function updateDebtAction(formData: FormData) {
 
     const validatedFields = updateDebtSchema.safeParse(values);
     if (!validatedFields.success) return { errors: validatedFields.error.flatten().fieldErrors };
+    if (!db) return { errors: { _server: ['O banco de dados não está configurado.'] } };
 
-    const { debtId, paidValue, totalValue } = validatedFields.data;
+    const { userId, debtId, paidValue, totalValue } = validatedFields.data;
     if (paidValue > totalValue) return { errors: { paidValue: ['O valor pago não pode ser maior que o valor total.'] } };
 
-    revalidatePath('/dividas');
-    return { message: 'Dívida atualizada com sucesso.', data: { id: debtId, paidValue } };
+    try {
+      const debtRef = doc(db, `users/${userId}/debts`, debtId);
+      await updateDoc(debtRef, { paidValue });
+      revalidatePath('/dividas');
+      return { message: 'Dívida atualizada com sucesso.', data: { id: debtId, paidValue } };
+    } catch (error) {
+      console.error("Error updating debt:", error);
+      return { errors: { _server: ['Não foi possível atualizar a dívida.'] } };
+    }
 }
 
 const deleteDebtSchema = z.object({
@@ -222,7 +233,17 @@ export async function deleteDebtAction(formData: FormData) {
     const values = { userId: formData.get('userId'), debtId: formData.get('debtId') };
     const validatedFields = deleteDebtSchema.safeParse(values);
     if (!validatedFields.success) return { errors: validatedFields.error.flatten().fieldErrors };
+    if (!db) return { errors: { _server: ['O banco de dados não está configurado.'] } };
     
-    revalidatePath('/dividas');
-    return { message: 'Dívida excluída com sucesso.', data: { id: validatedFields.data.debtId } };
+    const { userId, debtId } = validatedFields.data;
+
+    try {
+        const debtRef = doc(db, `users/${userId}/debts`, debtId);
+        await deleteDoc(debtRef);
+        revalidatePath('/dividas');
+        return { message: 'Dívida excluída com sucesso.', data: { id: debtId } };
+    } catch (error) {
+        console.error("Error deleting debt:", error);
+        return { errors: { _server: ['Não foi possível excluir a dívida.'] } };
+    }
 }

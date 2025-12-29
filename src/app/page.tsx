@@ -2,9 +2,10 @@
 
 import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { useLocalStorage } from '@/hooks/use-local-storage';
 import type { Transaction, Goal, Debt } from '@/types';
 import { startOfMonth, endOfMonth, subMonths, isSameMonth } from 'date-fns';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, query, where, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
 
 import AuthGuard from '@/components/auth-guard';
 import Header from '@/components/dashboard/header';
@@ -22,7 +23,6 @@ import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AppSidebar from '@/components/app-sidebar';
 import { ImportDialog } from '@/components/importer/import-dialog';
-
 
 const DashboardSkeleton = () => (
     <div className="flex flex-col min-h-screen bg-background">
@@ -51,12 +51,11 @@ const DashboardSkeleton = () => (
   </div>
 );
 
-
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [allTransactions, setAllTransactions] = useLocalStorage<Transaction[]>('transactions', []);
-  const [goals, setGoals] = useLocalStorage<Goal[]>('goals', []);
-  const [debts, setDebts] = useLocalStorage<Debt[]>('debts', []);
+  const [allTransactions, setAllTransactions] = React.useState<Transaction[]>([]);
+  const [goals, setGoals] = React.useState<Goal[]>([]);
+  const [debts, setDebts] = React.useState<Debt[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [currentDate, setCurrentDate] = React.useState(new Date());
 
@@ -71,25 +70,56 @@ export default function DashboardPage() {
     return isSameMonth(currentDate, new Date()) ? new Date() : startOfMonth(currentDate);
   }, [currentDate]);
 
+  React.useEffect(() => {
+    if (user && db) {
+      setLoading(true);
+      const q = query(collection(db, `users/${user.uid}/transactions`), orderBy('date', 'desc'));
+      const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const transactionsData: Transaction[] = [];
+        querySnapshot.forEach((doc) => {
+          transactionsData.push({ id: doc.id, ...doc.data() } as Transaction);
+        });
+        setAllTransactions(transactionsData);
+        setLoading(false);
+      }, (error) => {
+          console.error("Error fetching transactions:", error);
+          setLoading(false);
+      });
+
+      return () => unsubscribe();
+    } else {
+        setAllTransactions([]);
+        setLoading(false);
+    }
+  }, [user]);
+
   const handleGoalClick = (goal: Goal) => {
     setSelectedGoal(goal);
     setUpdateGoalOpen(true);
   };
 
-  const handleImportConfirm = (newTransactions: Transaction[]) => {
-    setAllTransactions(prev => [...prev, ...newTransactions]);
+  const handleImportConfirm = async (newTransactions: Omit<Transaction, 'id' | 'userId'>[]) => {
+    if (!user || !db) return;
+    const batch = newTransactions.map(t => {
+      const transactionData = {
+        ...t,
+        userId: user.uid,
+        createdAt: serverTimestamp(),
+      };
+      return addDoc(collection(db, `users/${user.uid}/transactions`), transactionData);
+    });
+    await Promise.all(batch);
   };
   
-  const handleResetData = () => {
+  const handleResetData = async () => {
+    // This is a placeholder. A real implementation would require a backend function
+    // to recursively delete all subcollections for a user.
+    // For now, we clear the local state as a demonstration.
+    console.warn("Resetting data is a complex backend operation. This is a local simulation.");
     setAllTransactions([]);
     setGoals([]);
     setDebts([]);
   };
-
-  React.useEffect(() => {
-    // Apenas simula o carregamento inicial, já que o localStorage é síncrono.
-    setLoading(false);
-  }, [user]);
 
   const { transactions, prevMonthTransactions } = React.useMemo(() => {
     if (!user) return { transactions: [], prevMonthTransactions: [] };
@@ -99,7 +129,7 @@ export default function DashboardPage() {
     
     const currentMonthT = allTransactions.filter(t => {
       const tDate = new Date(t.date);
-      return t.userId === user.uid && tDate >= firstDay && tDate <= lastDay;
+      return tDate >= firstDay && tDate <= lastDay;
     }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const prevMonth = subMonths(currentDate, 1);
@@ -108,7 +138,7 @@ export default function DashboardPage() {
     
     const prevMonthT = allTransactions.filter(t => {
       const tDate = new Date(t.date);
-      return t.userId === user.uid && tDate >= prevMonthFirstDay && tDate <= prevMonthLastDay;
+      return tDate >= prevMonthFirstDay && tDate <= prevMonthLastDay;
     });
 
     return { transactions: currentMonthT, prevMonthTransactions: prevMonthT };
@@ -180,13 +210,12 @@ export default function DashboardPage() {
     </div>
   );
 
-
   return (
     <AuthGuard>
       <div className="relative flex min-h-screen w-full flex-col bg-background">
         <AppSidebar />
         <main className="flex-1 pl-0 md:pl-16">
-          {loading ? <DashboardSkeleton /> : <MainContent />}
+          {loading && allTransactions.length === 0 ? <DashboardSkeleton /> : <MainContent />}
         </main>
         
         <AddTransactionDialog 

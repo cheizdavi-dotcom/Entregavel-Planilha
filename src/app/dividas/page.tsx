@@ -3,7 +3,9 @@
 import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import type { Debt } from '@/types';
-import { useLocalStorage } from '@/hooks/use-local-storage';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+
 import AuthGuard from '@/components/auth-guard';
 import { Button } from '@/components/ui/button';
 import { Plus, AlertTriangle } from 'lucide-react';
@@ -91,36 +93,47 @@ const EmptyState = ({ onAddClick }: { onAddClick: () => void }) => (
     </div>
 );
 
-
 export default function DividasPage() {
     const { user } = useAuth();
-    const [debts, setDebts] = useLocalStorage<Debt[]>('debts', []);
+    const [debts, setDebts] = React.useState<Debt[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [isAddOpen, setAddOpen] = React.useState(false);
     const [isUpdateOpen, setUpdateOpen] = React.useState(false);
     const [selectedDebt, setSelectedDebt] = React.useState<Debt | null>(null);
 
-    const userDebts = React.useMemo(() => {
-        if (!user) return [];
-        // Ordena por dívidas não pagas primeiro, e depois pelo valor restante (maior para menor)
-        return debts
-            .filter(d => d.userId === user.uid)
-            .sort((a,b) => {
-                const aRemaining = a.totalValue - a.paidValue;
-                const bRemaining = b.totalValue - b.paidValue;
-                const aIsPaid = aRemaining <= 0;
-                const bIsPaid = bRemaining <= 0;
-
-                if (aIsPaid && !bIsPaid) return 1;
-                if (!aIsPaid && bIsPaid) return -1;
-                return bRemaining - aRemaining;
-            });
-    }, [debts, user]);
-
     React.useEffect(() => {
-        // Apenas simula o carregamento inicial, já que o localStorage é síncrono.
-        setLoading(false);
+        if (user && db) {
+            setLoading(true);
+            const q = query(collection(db, `users/${user.uid}/debts`));
+            const unsubscribe = onSnapshot(q, (snapshot) => {
+                const debtsData: Debt[] = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const aRemaining = data.totalValue - data.paidValue;
+                    const aIsPaid = aRemaining <= 0;
+                    debtsData.push({ id: doc.id, isPaid: aIsPaid, remaining: aRemaining, ...doc.data() } as Debt);
+                });
+
+                // Ordena por dívidas não pagas primeiro, e depois pelo valor restante (maior para menor)
+                debtsData.sort((a,b) => {
+                    if (a.isPaid && !b.isPaid) return 1;
+                    if (!a.isPaid && b.isPaid) return -1;
+                    return b.remaining - a.remaining;
+                });
+
+                setDebts(debtsData);
+                setLoading(false);
+            }, (error) => {
+                console.error("Error fetching debts: ", error);
+                setLoading(false);
+            });
+            return () => unsubscribe();
+        } else {
+            setDebts([]);
+            setLoading(false);
+        }
     }, [user]);
+
 
     const handleAmortizeClick = (debt: Debt) => {
         setSelectedDebt(debt);
@@ -150,8 +163,8 @@ export default function DividasPage() {
                                     <SkeletonCard />
                                     <SkeletonCard />
                                 </>
-                            ) : userDebts.length > 0 ? (
-                                userDebts.map(debt => (
+                            ) : debts.length > 0 ? (
+                                debts.map(debt => (
                                     <DebtCard 
                                         key={debt.id} 
                                         debt={debt} 

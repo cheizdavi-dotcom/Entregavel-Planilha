@@ -4,7 +4,6 @@ import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import type { Transaction, ParsedTransaction } from '@/types';
-import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -23,11 +22,10 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Wand2 } from 'lucide-react';
 import { Input } from '../ui/input';
 
-
 interface ImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (newTransactions: Transaction[]) => void;
+  onConfirm: (newTransactions: Omit<Transaction, 'id' | 'userId'>[]) => void;
 }
 
 const CategoryIcon = ({ category, className }: { category: string; className?: string }) => {
@@ -38,23 +36,12 @@ const CategoryIcon = ({ category, className }: { category: string; className?: s
 const availableCategories = (type: 'income' | 'expense') => 
     Object.values(categoriesConfig).filter(cat => cat.type === type);
 
-// Função de sanitização robusta para valores monetários em formato BRL
-function sanitizeCurrency(valueStr: string): number {
-    if (!valueStr || typeof valueStr !== 'string') return 0;
-    // Remove tudo que não for dígito, vírgula ou sinal de menos
-    const cleaned = valueStr.replace(/[^\d,-]/g, '');
-    // Substitui a última vírgula por um ponto para o decimal
-    const finalStr = cleaned.replace(/,([^,]*)$/, '.$1');
-    return parseFloat(finalStr) || 0;
-}
-
-// Parser especializado para o formato RAW do extrato
 function parseStatement(text: string): Omit<ParsedTransaction, 'category'>[] {
     const lines = text.split('\n').filter(line => line.trim() !== '');
     const transactions: Omit<ParsedTransaction, 'category'>[] = [];
     
     // Regex para capturar data, valor (com ponto decimal) e descrição, ignorando UUID
-    const transactionRegex = /^(\d{2}\/\d{2}\/\d{4})\s+(-?\d+\.?\d*)\s+(?:[a-f0-9-]{36}\s+)?(.*)/i;
+    const transactionRegex = /^(\d{2}\/\d{2}\/\d{4})\s+(-?\d+\.\d+)\s+(?:[a-f0-9-]{36}\s+)?(.*)/i;
 
     lines.forEach(line => {
         const match = line.match(transactionRegex);
@@ -63,13 +50,11 @@ function parseStatement(text: string): Omit<ParsedTransaction, 'category'>[] {
             const [_, dateStr, valueStr, rawDescription] = match;
             const description = rawDescription.replace(/compra no débito - /i, '').trim();
 
-
             const dateParts = dateStr.split('/');
             const day = parseInt(dateParts[0], 10);
             const month = parseInt(dateParts[1], 10) - 1;
             const year = parseInt(dateParts[2], 10);
 
-            // Usa parseFloat diretamente, pois o valor já vem com ponto decimal
             const amount = parseFloat(valueStr);
             
             if (!isNaN(day) && !isNaN(month) && !isNaN(year) && !isNaN(amount) && description) {
@@ -86,26 +71,21 @@ function parseStatement(text: string): Omit<ParsedTransaction, 'category'>[] {
     return transactions;
 }
 
-
 function getCategoryFromDescription(description: string, type: 'income' | 'expense'): string {
     const lowerCaseDescription = description.toLowerCase();
 
-    for (const [category, keywords] of Object.entries(categoryKeywords)) {
-        if (keywords.some(keyword => lowerCaseDescription.includes(keyword))) {
-            // Garante que a categoria encontrada seja do tipo correto (receita/despesa)
-            if (categoriesConfig[category]?.type === type) {
-                return category;
+    for (const category in categoryKeywords) {
+        if (Object.prototype.hasOwnProperty.call(categoryKeywords, category)) {
+            const keywords = categoryKeywords[category];
+            if (keywords.some(keyword => lowerCaseDescription.includes(keyword))) {
+                 if (categoriesConfig[category]?.type === type) {
+                    return category;
+                }
             }
         }
     }
     
-    // Se for receita e não encontrar, retorna 'Outras Receitas'
-    if (type === 'income') {
-        return 'Outras Receitas';
-    }
-
-    // Se for despesa e não encontrar, retorna 'Outras Despesas'
-    return 'Outras Despesas';
+    return type === 'income' ? 'Outras Receitas' : 'Outras Despesas';
 }
 
 
@@ -135,7 +115,6 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
       return;
     }
 
-    // Simula um processamento para o spinner aparecer
     await new Promise(resolve => setTimeout(resolve, 500));
 
     const parsedData = parseStatement(text);
@@ -160,9 +139,7 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
     setIsProcessing(true);
     
     try {
-      const newTransactions: Transaction[] = parsed.map((p) => ({
-        id: uuidv4(),
-        userId: user.uid,
+      const newTransactions = parsed.map((p) => ({
         type: p.type,
         amount: p.amount,
         description: p.description,
@@ -192,7 +169,6 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
         (transactionToUpdate[field] as any) = value;
     }
 
-    // Se o tipo for alterado, recalcula a categoria
     if (field === 'type') {
         transactionToUpdate.category = getCategoryFromDescription(transactionToUpdate.description, value as 'income' | 'expense');
     }
