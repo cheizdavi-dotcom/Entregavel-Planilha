@@ -190,7 +190,7 @@ export default function DividasPage() {
         <AuthGuard>
             <div className="relative flex min-h-screen w-full flex-col bg-background">
                 <AppSidebar />
-                <main className="flex-1 pl-0 md:pl-16">
+                <main className="flex-1 pl-0 md:pl-16 px-4">
                     <div className="p-4 md:p-8 pt-6">
                         <div className="mb-6">
                             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Exterminador de Dívidas</h1>

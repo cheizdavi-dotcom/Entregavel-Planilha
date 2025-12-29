@@ -33,13 +33,13 @@ const chartConfig = {
 };
 
 const ChartSkeleton = () => (
-    <div className="h-[280px] w-full p-6">
+    <div className="h-[250px] md:h-[280px] w-full p-6">
         <Skeleton className="h-full w-full" />
     </div>
 );
 
 const EmptyState = () => (
-    <div className="flex h-[280px] w-full flex-col items-center justify-center text-center text-muted-foreground p-4">
+    <div className="h-[250px] md:h-[280px] w-full flex flex-col items-center justify-center text-center text-muted-foreground p-4">
         <p className="font-semibold">Nenhuma transação neste mês</p>
         <p className="text-sm">Adicione uma transação para ver a evolução do seu fluxo de caixa.</p>
     </div>
@@ -99,7 +99,7 @@ export default function MonthlyOverviewChart({ transactions, loading, currentDat
         {!hasData ? (
           <EmptyState />
         ) : (
-          <ChartContainer config={chartConfig} className='h-[280px] w-full'>
+          <ChartContainer config={chartConfig} className='h-[250px] md:h-[280px] w-full'>
             <AreaChart 
                 accessibilityLayer 
                 data={data} 

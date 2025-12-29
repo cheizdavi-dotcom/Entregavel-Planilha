@@ -147,12 +147,12 @@ export default function Header({ currentDate, setCurrentDate, onImportClick, onR
             </div>
         </div>
         
-        <div className="flex w-full flex-col items-stretch gap-2 sm:flex-row md:w-auto md:items-center">
-            <MonthNavigator currentDate={currentDate} setCurrentDate={setCurrentDate} />
+        <div className="flex w-full flex-col-reverse items-stretch gap-2 sm:flex-row md:w-auto md:items-center">
             <Button onClick={onImportClick} variant="outline" className="w-full sm:w-auto">
                 <Import className="mr-2 h-4 w-4" />
                 Importar
             </Button>
+            <MonthNavigator currentDate={currentDate} setCurrentDate={setCurrentDate} />
             <div className='hidden md:block'>
                 <UserMenu onResetData={onResetData} />
             </div>

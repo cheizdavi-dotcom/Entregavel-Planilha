@@ -39,6 +39,7 @@ function parseTransactions(text: string): Omit<ParsedTransaction, 'category'>[] 
     const lines = text.split('\n').filter(line => line.trim() !== '');
     const transactions: Omit<ParsedTransaction, 'category'>[] = [];
 
+    // Regex to capture date, value with dot, optional UUID, and description
     const transactionRegex = /^(\d{2}\/\d{2}\/\d{4})\s+(-?\d+\.\d+)\s+(?:[a-f0-9-]{36}\s+)?(.*)/i;
 
     lines.forEach(line => {
@@ -53,6 +54,7 @@ function parseTransactions(text: string): Omit<ParsedTransaction, 'category'>[] 
             const month = parseInt(dateParts[1], 10) - 1;
             const year = parseInt(dateParts[2], 10);
             
+            // Direct conversion from string to float, without replacing dots.
             const amount = parseFloat(valueStr);
 
             if (!isNaN(day) && !isNaN(month) && !isNaN(year) && !isNaN(amount) && description) {
@@ -191,7 +193,7 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-dark border-border/20 max-w-sm md:max-w-4xl">
+      <DialogContent className="glass-dark border-border/20 w-[95%] md:w-full md:max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Importador Inteligente</DialogTitle>
           <DialogDescription>
@@ -214,82 +216,84 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
         
         {step === 'preview' && (
           isProcessing ? (
-             <div className="h-[60vh] flex flex-col items-center justify-center gap-4">
+             <div className="flex-1 flex flex-col items-center justify-center gap-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
                 <p className="text-lg text-muted-foreground">Categorizando transações...</p>
              </div>
           ) : (
-            <div className="mt-4 w-full overflow-x-auto">
-              <Table>
-                  <TableHeader>
-                  <TableRow>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Categoria</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                  </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                  {parsed.map((p, index) => (
-                      <TableRow key={index}>
-                          <TableCell className='font-medium whitespace-nowrap'>{new Date(p.date).toLocaleDateString('pt-BR')}</TableCell>
-                          <TableCell>
-                              <Input 
-                                  value={p.description} 
-                                  onChange={(e) => handleFieldChange(index, 'description', e.target.value)}
-                                  className="h-8 min-w-[150px]"
-                              />
-                          </TableCell>
-                          <TableCell>
-                             <Select
-                                value={p.type}
-                                onValueChange={(value: 'income' | 'expense') => handleFieldChange(index, 'type', value)}
-                            >
-                                <SelectTrigger className="w-[110px] h-8">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="expense">
-                                        <Badge variant="destructive">Despesa</Badge>
-                                    </SelectItem>
-                                    <SelectItem value="income">
-                                        <Badge variant="default">Receita</Badge>
-                                    </SelectItem>
-                                </SelectContent>
-                             </Select>
-                          </TableCell>
-                          <TableCell>
-                              <Select 
-                                  onValueChange={(value) => handleFieldChange(index, 'category', value)} 
-                                  value={p.category}>
-                                  <SelectTrigger className="w-[180px] h-8">
-                                      <SelectValue placeholder="Selecione..." />
+            <div className="mt-4 w-full overflow-y-auto flex-1">
+              <div className='w-full overflow-x-auto'>
+                <Table>
+                    <TableHeader>
+                    <TableRow>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Descrição</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Categoria</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
+                    </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                    {parsed.map((p, index) => (
+                        <TableRow key={index}>
+                            <TableCell className='font-medium whitespace-nowrap'>{new Date(p.date).toLocaleDateString('pt-BR')}</TableCell>
+                            <TableCell>
+                                <Input 
+                                    value={p.description} 
+                                    onChange={(e) => handleFieldChange(index, 'description', e.target.value)}
+                                    className="h-8 min-w-[150px]"
+                                />
+                            </TableCell>
+                            <TableCell>
+                               <Select
+                                  value={p.type}
+                                  onValueChange={(value: 'income' | 'expense') => handleFieldChange(index, 'type', value)}
+                              >
+                                  <SelectTrigger className="w-[110px] h-8">
+                                      <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
-                                      {availableCategories(p.type).map(cat => (
-                                          <SelectItem key={cat.label} value={cat.label}>
-                                              <div className="flex items-center gap-2">
-                                                  <CategoryIcon category={cat.label} className="h-4 w-4" />
-                                                  {cat.label}
-                                              </div>
-                                          </SelectItem>
-                                      ))}
+                                      <SelectItem value="expense">
+                                          <Badge variant="destructive">Despesa</Badge>
+                                      </SelectItem>
+                                      <SelectItem value="income">
+                                          <Badge variant="default">Receita</Badge>
+                                      </SelectItem>
                                   </SelectContent>
-                              </Select>
-                          </TableCell>
-                          <TableCell className="text-right">
-                              <Input 
-                                  type="text"
-                                  value={String(p.amount).replace('.',',')} 
-                                  onChange={(e) => handleFieldChange(index, 'amount', e.target.value)}
-                                  className={`h-8 font-inter font-bold text-right min-w-[100px] ${p.type === 'income' ? 'text-primary' : 'text-foreground'}`}
-                              />
-                          </TableCell>
-                      </TableRow>
-                  ))}
-                  </TableBody>
-              </Table>
+                               </Select>
+                            </TableCell>
+                            <TableCell>
+                                <Select 
+                                    onValueChange={(value) => handleFieldChange(index, 'category', value)} 
+                                    value={p.category}>
+                                    <SelectTrigger className="w-[180px] h-8">
+                                        <SelectValue placeholder="Selecione..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {availableCategories(p.type).map(cat => (
+                                            <SelectItem key={cat.label} value={cat.label}>
+                                                <div className="flex items-center gap-2">
+                                                    <CategoryIcon category={cat.label} className="h-4 w-4" />
+                                                    {cat.label}
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </TableCell>
+                            <TableCell className="text-right">
+                                <Input 
+                                    type="text"
+                                    value={String(p.amount).replace('.',',')} 
+                                    onChange={(e) => handleFieldChange(index, 'amount', e.target.value)}
+                                    className={`h-8 font-inter font-bold text-right min-w-[100px] ${p.type === 'income' ? 'text-primary' : 'text-foreground'}`}
+                                />
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                    </TableBody>
+                </Table>
+              </div>
             </div>
           )
         )}

@@ -81,7 +81,7 @@ export default function ExpenseChart({ transactions, loading }: ExpenseChartProp
                 <CardTitle>Gastos por Categoria</CardTitle>
                 <CardDescription>Distribuição de despesas</CardDescription>
             </CardHeader>
-            <CardContent className="flex-1 flex items-center justify-center">
+            <CardContent className="flex-1 flex items-center justify-center h-[250px] md:h-auto">
                 <ChartSkeleton />
             </CardContent>
         </Card>
@@ -96,7 +96,7 @@ export default function ExpenseChart({ transactions, loading }: ExpenseChartProp
         <CardTitle>Gastos por Categoria</CardTitle>
         <CardDescription>Distribuição de despesas</CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 flex items-center justify-center">
+      <CardContent className="flex-1 flex items-center justify-center h-[250px] md:h-auto">
         {!hasData ? (
           <EmptyState />
         ) : (

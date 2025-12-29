@@ -119,111 +119,113 @@ export function AddDebtDialog({ open, onOpenChange }: AddDebtDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] glass-dark border-border/20">
+      <DialogContent className="glass-dark border-border/20 w-[95%] md:max-w-[500px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Nova Dívida</DialogTitle>
           <DialogDescription>Cadastre uma dívida para começar a quitá-la.</DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="creditorName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome do Credor</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ex: Nubank, Banco do Brasil" {...field} disabled={isSubmitting}/>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-2 gap-4">
+        <div className="flex-1 overflow-y-auto -mr-6 pr-6">
+            <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                 control={form.control}
-                name="totalValue"
+                name="creditorName"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Valor Total</FormLabel>
+                    <FormLabel>Nome do Credor</FormLabel>
                     <FormControl>
-                        <div className="relative">
-                        <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground font-inter">R$</span>
-                        <Input type="text" placeholder="1.000,00" {...field} className="pl-10 font-inter font-bold" disabled={isSubmitting}/>
-                        </div>
+                        <Input placeholder="Ex: Nubank, Banco do Brasil" {...field} disabled={isSubmitting}/>
                     </FormControl>
                     <FormMessage />
                     </FormItem>
                 )}
                 />
-                <FormField
-                control={form.control}
-                name="paidValue"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Valor Já Pago</FormLabel>
-                    <FormControl>
-                        <div className="relative">
-                        <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground font-inter">R$</span>
-                        <Input type="text" placeholder="100,00" {...field} className="pl-10 font-inter font-bold" disabled={isSubmitting}/>
-                        </div>
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-                <FormField
-                control={form.control}
-                name="interestRate"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Juros Mensal (%)</FormLabel>
-                    <FormControl>
-                        <div className="relative">
-                        <span className="absolute inset-y-0 right-3 flex items-center text-muted-foreground font-inter">%</span>
-                        <Input type="text" placeholder="5,00" {...field} className="pr-10 font-inter font-bold" disabled={isSubmitting}/>
-                        </div>
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-                <FormField
-                  control={form.control}
-                  name="dueDate"
-                  render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Dia do Vencimento</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
-                            <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Escolha o dia" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                {[...Array(31)].map((_, i) => (
-                                    <SelectItem key={i+1} value={`${i+1}`}>{`Todo dia ${i+1}`}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                    control={form.control}
+                    name="totalValue"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Valor Total</FormLabel>
+                        <FormControl>
+                            <div className="relative">
+                            <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground font-inter">R$</span>
+                            <Input type="text" placeholder="1.000,00" {...field} className="pl-10 font-inter font-bold" disabled={isSubmitting}/>
+                            </div>
+                        </FormControl>
                         <FormMessage />
-                    </FormItem>
-                  )}
-                />
-            </div>
-            <DialogFooter className='pt-4'>
-                <DialogClose asChild>
-                    <Button type="button" variant="ghost" disabled={isSubmitting}>Cancelar</Button>
-                </DialogClose>
-                <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? "Salvando..." : "Salvar Dívida"}
-                </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="paidValue"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Valor Já Pago</FormLabel>
+                        <FormControl>
+                            <div className="relative">
+                            <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground font-inter">R$</span>
+                            <Input type="text" placeholder="100,00" {...field} className="pl-10 font-inter font-bold" disabled={isSubmitting}/>
+                            </div>
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                    control={form.control}
+                    name="interestRate"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Juros Mensal (%)</FormLabel>
+                        <FormControl>
+                            <div className="relative">
+                            <span className="absolute inset-y-0 right-3 flex items-center text-muted-foreground font-inter">%</span>
+                            <Input type="text" placeholder="5,00" {...field} className="pr-10 font-inter font-bold" disabled={isSubmitting}/>
+                            </div>
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="dueDate"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Dia do Vencimento</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Escolha o dia" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {[...Array(31)].map((_, i) => (
+                                        <SelectItem key={i+1} value={`${i+1}`}>{`Todo dia ${i+1}`}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                </div>
+                <DialogFooter className='pt-4 sticky bottom-0 bg-background pb-0'>
+                    <DialogClose asChild>
+                        <Button type="button" variant="ghost" disabled={isSubmitting}>Cancelar</Button>
+                    </DialogClose>
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting ? "Salvando..." : "Salvar Dívida"}
+                    </Button>
+                </DialogFooter>
+            </form>
+            </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );
