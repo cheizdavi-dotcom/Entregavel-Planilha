@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import type { Debt } from '@/types';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query } from 'firebase/firestore';
 
 import AuthGuard from '@/components/auth-guard';
 import { Button } from '@/components/ui/button';
@@ -132,15 +132,15 @@ export default function DividasPage() {
                 const debtsData: Debt[] = [];
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    const aRemaining = data.totalValue - data.paidValue;
-                    const aIsPaid = aRemaining <= 0;
-                    debtsData.push({ id: doc.id, isPaid: aIsPaid, remaining: aRemaining, ...data } as Debt);
+                    const remaining = data.totalValue - data.paidValue;
+                    const isPaid = remaining <= 0;
+                    debtsData.push({ id: doc.id, isPaid: isPaid, remaining: remaining, ...data } as Debt);
                 });
 
                 debtsData.sort((a,b) => {
                     if (a.isPaid && !b.isPaid) return 1;
                     if (!a.isPaid && b.isPaid) return -1;
-                    return b.remaining - a.remaining;
+                    return (b.remaining ?? 0) - (a.remaining ?? 0);
                 });
 
                 setDebts(debtsData);
@@ -193,7 +193,7 @@ export default function DividasPage() {
                 <main className="flex-1 pl-0 md:pl-16">
                     <div className="p-4 md:p-8 pt-6">
                         <div className="mb-6">
-                            <h1 className="text-3xl font-bold tracking-tight">Exterminador de Dívidas</h1>
+                            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Exterminador de Dívidas</h1>
                             <p className="text-muted-foreground">Monitore e elimine suas dívidas para alcançar sua liberdade financeira.</p>
                         </div>
                         
@@ -244,7 +244,7 @@ export default function DividasPage() {
             <UpdateDebtDialog open={isUpdateOpen} onOpenChange={setUpdateOpen} debt={selectedDebt} />
 
              <Button 
-                className="fixed bottom-8 right-8 h-16 w-16 rounded-full shadow-lg shadow-primary/30 z-50"
+                className="fixed bottom-4 right-4 h-16 w-16 rounded-full shadow-lg shadow-primary/30 z-50 md:bottom-8 md:right-8"
                 onClick={() => setAddOpen(true)}
             >
                 <Plus className="h-8 w-8" />

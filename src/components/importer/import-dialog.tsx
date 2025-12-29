@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import type { Transaction, ParsedTransaction } from '@/types';
+import type { ParsedTransaction, Transaction } from '@/types';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -17,7 +17,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { categoriesConfig, categoryKeywords } from '@/lib/categories';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Wand2 } from 'lucide-react';
 import { Input } from '../ui/input';
@@ -40,7 +39,6 @@ function parseTransactions(text: string): Omit<ParsedTransaction, 'category'>[] 
     const lines = text.split('\n').filter(line => line.trim() !== '');
     const transactions: Omit<ParsedTransaction, 'category'>[] = [];
 
-    // Regex para capturar data (dd/mm/yyyy), valor (com ponto decimal e sinal opcional), ignorar UUID e capturar descrição
     const transactionRegex = /^(\d{2}\/\d{2}\/\d{4})\s+(-?\d+\.\d+)\s+(?:[a-f0-9-]{36}\s+)?(.*)/i;
 
     lines.forEach(line => {
@@ -193,7 +191,7 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="glass-dark border-border/20 max-w-4xl">
+      <DialogContent className="glass-dark border-border/20 max-w-sm md:max-w-4xl">
         <DialogHeader>
           <DialogTitle>Importador Inteligente</DialogTitle>
           <DialogDescription>
@@ -221,80 +219,78 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
                 <p className="text-lg text-muted-foreground">Categorizando transações...</p>
              </div>
           ) : (
-            <>
-              <ScrollArea className="h-[60vh] pr-4 mt-4">
-                  <Table>
-                      <TableHeader>
-                      <TableRow>
-                          <TableHead>Data</TableHead>
-                          <TableHead>Descrição</TableHead>
-                          <TableHead>Tipo</TableHead>
-                          <TableHead>Categoria</TableHead>
-                          <TableHead className="text-right">Valor</TableHead>
+            <div className="mt-4 w-full overflow-x-auto">
+              <Table>
+                  <TableHeader>
+                  <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                  </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                  {parsed.map((p, index) => (
+                      <TableRow key={index}>
+                          <TableCell className='font-medium whitespace-nowrap'>{new Date(p.date).toLocaleDateString('pt-BR')}</TableCell>
+                          <TableCell>
+                              <Input 
+                                  value={p.description} 
+                                  onChange={(e) => handleFieldChange(index, 'description', e.target.value)}
+                                  className="h-8 min-w-[150px]"
+                              />
+                          </TableCell>
+                          <TableCell>
+                             <Select
+                                value={p.type}
+                                onValueChange={(value: 'income' | 'expense') => handleFieldChange(index, 'type', value)}
+                            >
+                                <SelectTrigger className="w-[110px] h-8">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="expense">
+                                        <Badge variant="destructive">Despesa</Badge>
+                                    </SelectItem>
+                                    <SelectItem value="income">
+                                        <Badge variant="default">Receita</Badge>
+                                    </SelectItem>
+                                </SelectContent>
+                             </Select>
+                          </TableCell>
+                          <TableCell>
+                              <Select 
+                                  onValueChange={(value) => handleFieldChange(index, 'category', value)} 
+                                  value={p.category}>
+                                  <SelectTrigger className="w-[180px] h-8">
+                                      <SelectValue placeholder="Selecione..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                      {availableCategories(p.type).map(cat => (
+                                          <SelectItem key={cat.label} value={cat.label}>
+                                              <div className="flex items-center gap-2">
+                                                  <CategoryIcon category={cat.label} className="h-4 w-4" />
+                                                  {cat.label}
+                                              </div>
+                                          </SelectItem>
+                                      ))}
+                                  </SelectContent>
+                              </Select>
+                          </TableCell>
+                          <TableCell className="text-right">
+                              <Input 
+                                  type="text"
+                                  value={String(p.amount).replace('.',',')} 
+                                  onChange={(e) => handleFieldChange(index, 'amount', e.target.value)}
+                                  className={`h-8 font-inter font-bold text-right min-w-[100px] ${p.type === 'income' ? 'text-primary' : 'text-foreground'}`}
+                              />
+                          </TableCell>
                       </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                      {parsed.map((p, index) => (
-                          <TableRow key={index}>
-                              <TableCell className='font-medium'>{new Date(p.date).toLocaleDateString('pt-BR')}</TableCell>
-                              <TableCell>
-                                  <Input 
-                                      value={p.description} 
-                                      onChange={(e) => handleFieldChange(index, 'description', e.target.value)}
-                                      className="h-8"
-                                  />
-                              </TableCell>
-                              <TableCell>
-                                 <Select
-                                    value={p.type}
-                                    onValueChange={(value: 'income' | 'expense') => handleFieldChange(index, 'type', value)}
-                                >
-                                    <SelectTrigger className="w-[110px] h-8">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="expense">
-                                            <Badge variant="destructive">Despesa</Badge>
-                                        </SelectItem>
-                                        <SelectItem value="income">
-                                            <Badge variant="default">Receita</Badge>
-                                        </SelectItem>
-                                    </SelectContent>
-                                 </Select>
-                              </TableCell>
-                              <TableCell>
-                                  <Select 
-                                      onValueChange={(value) => handleFieldChange(index, 'category', value)} 
-                                      value={p.category}>
-                                      <SelectTrigger className="w-[180px] h-8">
-                                          <SelectValue placeholder="Selecione..." />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                          {availableCategories(p.type).map(cat => (
-                                              <SelectItem key={cat.label} value={cat.label}>
-                                                  <div className="flex items-center gap-2">
-                                                      <CategoryIcon category={cat.label} className="h-4 w-4" />
-                                                      {cat.label}
-                                                  </div>
-                                              </SelectItem>
-                                          ))}
-                                      </SelectContent>
-                                  </Select>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                  <Input 
-                                      type="text"
-                                      value={String(p.amount).replace('.',',')} 
-                                      onChange={(e) => handleFieldChange(index, 'amount', e.target.value)}
-                                      className={`h-8 font-inter font-bold text-right ${p.type === 'income' ? 'text-primary' : 'text-foreground'}`}
-                                  />
-                              </TableCell>
-                          </TableRow>
-                      ))}
-                      </TableBody>
-                  </Table>
-              </ScrollArea>
-            </>
+                  ))}
+                  </TableBody>
+              </Table>
+            </div>
           )
         )}
 

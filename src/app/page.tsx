@@ -2,10 +2,10 @@
 
 import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import type { Transaction, Goal, Debt } from '@/types';
+import type { Transaction, Goal } from '@/types';
 import { startOfMonth, endOfMonth, subMonths, isSameMonth } from 'date-fns';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query, where, orderBy, addDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, writeBatch, doc, getDocs } from 'firebase/firestore';
 
 import AuthGuard from '@/components/auth-guard';
 import Header from '@/components/dashboard/header';
@@ -123,12 +123,12 @@ export default function DashboardPage() {
 
     try {
         const batch = writeBatch(db);
+        const transactionsCollection = collection(db, `users/${user.uid}/transactions`);
         newTransactions.forEach(t => {
-            const docRef = doc(collection(db, `users/${user.uid}/transactions`));
+            const docRef = doc(transactionsCollection);
             const transactionData = {
                 ...t,
                 userId: user.uid,
-                createdAt: serverTimestamp(),
             };
             batch.set(docRef, transactionData);
         });
@@ -146,16 +146,14 @@ export default function DashboardPage() {
       return;
     }
     
-    // Esta é uma operação perigosa e complexa. Em um app de produção,
-    // isso seria feito por uma Cloud Function que deleta recursivamente.
-    // Aqui, vamos deletar os documentos das coleções principais.
+    // This is a dangerous operation.
     console.warn("Resetting data is a destructive operation.");
     
-    const collections = ['transactions', 'goals', 'debts'];
+    const collectionsToDelete = ['transactions', 'goals', 'debts'];
     try {
       const batch = writeBatch(db);
-      for (const col of collections) {
-        const colRef = collection(db, `users/${user.uid}/${col}`);
+      for (const colName of collectionsToDelete) {
+        const colRef = collection(db, `users/${user.uid}/${colName}`);
         const snapshot = await getDocs(colRef);
         snapshot.forEach(doc => {
           batch.delete(doc.ref);
@@ -163,7 +161,7 @@ export default function DashboardPage() {
       }
       await batch.commit();
       
-      // Forçando a atualização do estado local para refletir a limpeza
+      // Forcing local state update to reflect the cleaning
       setAllTransactions([]);
       setGoals([]);
       
@@ -234,7 +232,7 @@ export default function DashboardPage() {
         onResetData={handleResetData}
       />
       
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         <SummaryCards balance={balance} income={income} expenses={expenses} prevMonthSavings={prevMonthSavings} loading={loading}/>
       </div>
       
@@ -293,7 +291,7 @@ export default function DashboardPage() {
         />
         
         <Button 
-            className="fixed bottom-8 right-8 h-16 w-16 rounded-full shadow-lg shadow-primary/30 z-50"
+            className="fixed bottom-4 right-4 h-16 w-16 rounded-full shadow-lg shadow-primary/30 z-50 md:bottom-8 md:right-8"
             onClick={() => setAddTransactionOpen(true)}
         >
           <Plus className="h-8 w-8" />
@@ -302,5 +300,3 @@ export default function DashboardPage() {
     </AuthGuard>
   );
 }
-
-    
