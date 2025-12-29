@@ -8,7 +8,7 @@ import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 
 import AuthGuard from '@/components/auth-guard';
 import { Button } from '@/components/ui/button';
-import { Plus, AlertTriangle } from 'lucide-react';
+import { Plus, AlertTriangle, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/utils';
@@ -17,6 +17,19 @@ import { AddDebtDialog } from '@/components/debts/add-debt-dialog';
 import { UpdateDebtDialog } from '@/components/debts/update-debt-dialog';
 import AppSidebar from '@/components/app-sidebar';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { deleteDebtAction } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
 
 interface DebtCardProps {
     debt: Debt;
@@ -24,7 +37,7 @@ interface DebtCardProps {
     onDeleteClick: (debt: Debt) => void;
 }
 
-const DebtCard = ({ debt, onAmortizeClick }: DebtCardProps) => {
+const DebtCard = ({ debt, onAmortizeClick, onDeleteClick }: DebtCardProps) => {
     const percentage = debt.totalValue > 0 ? (debt.paidValue / debt.totalValue) * 100 : 0;
     const remaining = debt.totalValue - debt.paidValue;
     const isPaid = remaining <= 0;
@@ -60,10 +73,15 @@ const DebtCard = ({ debt, onAmortizeClick }: DebtCardProps) => {
                     {formatCurrency(debt.paidValue)} / {formatCurrency(debt.totalValue)}
                 </div>
             </CardContent>
-            <CardFooter className="pt-4">
+            <CardFooter className="pt-4 flex gap-2">
                 {!isPaid && (
                      <Button onClick={() => onAmortizeClick(debt)} className="w-full">Amortizar</Button>
                 )}
+                 <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="icon" className="shrink-0" disabled={isPaid}>
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                </AlertDialogTrigger>
             </CardFooter>
         </Card>
     );
@@ -95,11 +113,13 @@ const EmptyState = ({ onAddClick }: { onAddClick: () => void }) => (
 
 export default function DividasPage() {
     const { user } = useAuth();
+    const { toast } = useToast();
     const [debts, setDebts] = React.useState<Debt[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [isAddOpen, setAddOpen] = React.useState(false);
     const [isUpdateOpen, setUpdateOpen] = React.useState(false);
     const [selectedDebt, setSelectedDebt] = React.useState<Debt | null>(null);
+    const [isDeleting, setIsDeleting] = React.useState(false);
 
     React.useEffect(() => {
         if (user && db) {
@@ -111,10 +131,9 @@ export default function DividasPage() {
                     const data = doc.data();
                     const aRemaining = data.totalValue - data.paidValue;
                     const aIsPaid = aRemaining <= 0;
-                    debtsData.push({ id: doc.id, isPaid: aIsPaid, remaining: aRemaining, ...doc.data() } as Debt);
+                    debtsData.push({ id: doc.id, isPaid: aIsPaid, remaining: aRemaining, ...data } as Debt);
                 });
 
-                // Ordena por dívidas não pagas primeiro, e depois pelo valor restante (maior para menor)
                 debtsData.sort((a,b) => {
                     if (a.isPaid && !b.isPaid) return 1;
                     if (!a.isPaid && b.isPaid) return -1;
@@ -128,7 +147,7 @@ export default function DividasPage() {
                 setLoading(false);
             });
             return () => unsubscribe();
-        } else {
+        } else if (!user) {
             setDebts([]);
             setLoading(false);
         }
@@ -140,10 +159,29 @@ export default function DividasPage() {
         setUpdateOpen(true);
     };
 
-    const handleDeleteClick = (debt: Debt) => {
-        // Futura implementação do modal de exclusão
-        console.log("Delete clicked", debt);
-    }
+    const handleDelete = async (debt: Debt | null) => {
+        if (!user || !debt) return;
+    
+        setIsDeleting(true);
+        try {
+          const formData = new FormData();
+          formData.append('userId', user.uid);
+          formData.append('debtId', debt.id);
+    
+          const result = await deleteDebtAction(formData);
+    
+          if (result?.errors) {
+            toast({ variant: 'destructive', title: 'Erro ao Excluir Dívida', description: result.errors._server?.[0] });
+          } else {
+            toast({ title: 'Dívida Excluída', description: 'A dívida foi removida com sucesso.' });
+          }
+        } catch (error: any) {
+          toast({ variant: 'destructive', title: 'Uh oh! Algo deu errado.', description: error.message });
+        } finally {
+          setIsDeleting(false);
+          setSelectedDebt(null);
+        }
+    };
 
     return (
         <AuthGuard>
@@ -165,12 +203,31 @@ export default function DividasPage() {
                                 </>
                             ) : debts.length > 0 ? (
                                 debts.map(debt => (
-                                    <DebtCard 
-                                        key={debt.id} 
-                                        debt={debt} 
-                                        onAmortizeClick={handleAmortizeClick} 
-                                        onDeleteClick={handleDeleteClick}
-                                    />
+                                    <AlertDialog key={debt.id}>
+                                        <DebtCard 
+                                            debt={debt} 
+                                            onAmortizeClick={handleAmortizeClick} 
+                                            onDeleteClick={() => setSelectedDebt(debt)}
+                                        />
+                                         <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                Esta ação não pode ser desfeita. Isso excluirá permanentemente o registro desta dívida.
+                                            </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                            <AlertDialogCancel disabled={isDeleting} onClick={() => setSelectedDebt(null)}>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction 
+                                                onClick={() => handleDelete(debt)} 
+                                                disabled={isDeleting}
+                                                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                                            >
+                                                {isDeleting ? "Excluindo..." : "Confirmar Exclusão"}
+                                            </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
                                 ))
                             ) : (
                                 <EmptyState onAddClick={() => setAddOpen(true)} />

@@ -36,11 +36,11 @@ const CategoryIcon = ({ category, className }: { category: string; className?: s
 const availableCategories = (type: 'income' | 'expense') => 
     Object.values(categoriesConfig).filter(cat => cat.type === type);
 
-function parseStatement(text: string): Omit<ParsedTransaction, 'category'>[] {
+function parseTransactions(text: string): Omit<ParsedTransaction, 'category'>[] {
     const lines = text.split('\n').filter(line => line.trim() !== '');
     const transactions: Omit<ParsedTransaction, 'category'>[] = [];
-    
-    // Regex para capturar data, valor (com ponto decimal) e descrição, ignorando UUID
+
+    // Regex para capturar data (dd/mm/yyyy), valor (com ponto decimal e sinal opcional), ignorar UUID e capturar descrição
     const transactionRegex = /^(\d{2}\/\d{2}\/\d{4})\s+(-?\d+\.\d+)\s+(?:[a-f0-9-]{36}\s+)?(.*)/i;
 
     lines.forEach(line => {
@@ -54,9 +54,9 @@ function parseStatement(text: string): Omit<ParsedTransaction, 'category'>[] {
             const day = parseInt(dateParts[0], 10);
             const month = parseInt(dateParts[1], 10) - 1;
             const year = parseInt(dateParts[2], 10);
-
-            const amount = parseFloat(valueStr);
             
+            const amount = parseFloat(valueStr);
+
             if (!isNaN(day) && !isNaN(month) && !isNaN(year) && !isNaN(amount) && description) {
                 transactions.push({
                     date: new Date(year, month, day).toISOString(),
@@ -93,7 +93,7 @@ const exampleText = `COMO FUNCIONA:
 Copie o texto da sua fatura ou extrato e cole no campo abaixo. O sistema tentará encontrar transações em diversos formatos.
 
 Exemplos de formatos aceitos:
-26/12/2025 -50.23 Uber
+26/12/2025 -50.25 Uber
 26/12/2025 1200.00 Salário Recebido
 25/12/2025 -150.99 Supermercado Pão de Açúcar
 `;
@@ -106,7 +106,6 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
   const [step, setStep] = React.useState<'paste' | 'preview'>('paste');
   const [isProcessing, setIsProcessing] = React.useState(false);
 
-
   const handleParseAndCategorize = async () => {
     setIsProcessing(true);
     if (!text) {
@@ -117,7 +116,8 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
 
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    const parsedData = parseStatement(text);
+    const parsedData = parseTransactions(text);
+    
     if (parsedData.length === 0) {
         toast({ variant: 'destructive', title: 'Nenhuma transação encontrada', description: 'Verifique o texto colado. O sistema procura por linhas com data, valor e descrição.' });
         setIsProcessing(false);
@@ -164,7 +164,8 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
     const transactionToUpdate = { ...updated[index] };
 
     if (field === 'amount' && typeof value === 'string') {
-        transactionToUpdate[field] = parseFloat(value.replace(',', '.')) || 0;
+        const sanitizedValue = value.replace(',', '.');
+        transactionToUpdate[field] = parseFloat(sanitizedValue) || 0;
     } else {
         (transactionToUpdate[field] as any) = value;
     }
@@ -176,7 +177,6 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
     updated[index] = transactionToUpdate;
     setParsed(updated);
 };
-
 
   const handleClose = () => {
     setText('');
@@ -195,7 +195,7 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="glass-dark border-border/20 max-w-4xl">
         <DialogHeader>
-          <DialogTitle>Importador Inteligente (Magic Paste)</DialogTitle>
+          <DialogTitle>Importador Inteligente</DialogTitle>
           <DialogDescription>
             {step === 'paste' 
               ? 'Abra a fatura do seu cartão (ou o extrato bancário) e simplesmente copie e cole o texto das transações aqui.'

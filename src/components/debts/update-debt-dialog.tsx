@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { updateDebtAction, deleteDebtAction } from '@/app/actions';
+import { updateDebtAction } from '@/app/actions';
 import type { Debt } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 
@@ -21,17 +21,6 @@ import {
   DialogClose,
 } from '@/components/ui/dialog';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import {
   Form,
   FormControl,
   FormField,
@@ -43,8 +32,8 @@ import { Input } from '@/components/ui/input';
 
 const formSchema = z.object({
   paymentValue: z.string()
-    .refine(val => /^\d+([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido.' })
-    .refine(val => parseFloat(val.replace(',', '.')) > 0, { message: 'O valor do pagamento deve ser positivo.' }),
+    .refine(val => val && parseFloat(val.replace(',', '.')) > 0, { message: 'O valor do pagamento deve ser positivo.' })
+    .refine(val => /^\d+([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido.' }),
 });
 
 interface UpdateDebtDialogProps {
@@ -55,7 +44,6 @@ interface UpdateDebtDialogProps {
 
 export function UpdateDebtDialog({ open, onOpenChange, debt }: UpdateDebtDialogProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [isDeleting, setIsDeleting] = React.useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -106,29 +94,6 @@ export function UpdateDebtDialog({ open, onOpenChange, debt }: UpdateDebtDialogP
     }
   }
 
-  async function handleDelete() {
-    if (!user || !debt) return;
-
-    setIsDeleting(true);
-    try {
-      const formData = new FormData();
-      formData.append('userId', user.uid);
-      formData.append('debtId', debt.id);
-
-      const result = await deleteDebtAction(formData);
-
-      if (result?.errors) {
-        toast({ variant: 'destructive', title: 'Erro ao Excluir Dívida', description: result.errors._server?.[0] });
-      } else {
-        toast({ title: 'Dívida Excluída', description: 'A dívida foi removida com sucesso.' });
-        handleClose();
-      }
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Uh oh! Algo deu errado.', description: error.message });
-    } finally {
-      setIsDeleting(false);
-    }
-  }
   
   React.useEffect(() => {
     form.reset({ paymentValue: '' });
@@ -168,29 +133,7 @@ export function UpdateDebtDialog({ open, onOpenChange, debt }: UpdateDebtDialogP
             />
             
             <DialogFooter className='pt-4 flex-col gap-2 sm:flex-row'>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button type="button" variant="destructive" className='w-full sm:w-auto' disabled={isSubmitting || isDeleting}>
-                      Excluir Dívida
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Esta ação não pode ser desfeita. Isso excluirá permanentemente o registro desta dívida.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
-                        {isDeleting ? "Excluindo..." : "Confirmar Exclusão"}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-
-                <div className='flex-1 flex justify-end gap-2'>
+                <div className='flex w-full justify-end gap-2'>
                     <DialogClose asChild>
                         <Button type="button" variant="ghost" disabled={isSubmitting}>Cancelar</Button>
                     </DialogClose>
