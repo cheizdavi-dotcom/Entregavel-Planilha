@@ -4,9 +4,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { updateGoalAction, deleteGoalAction } from '@/app/actions';
 import type { Goal } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 
@@ -52,12 +50,13 @@ interface UpdateGoalDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   goal: Goal | null;
+  onUpdateGoal: (goal: Goal) => void;
+  onDeleteGoal: (goalId: string) => void;
 }
 
-export function UpdateGoalDialog({ open, onOpenChange, goal }: UpdateGoalDialogProps) {
+export function UpdateGoalDialog({ open, onOpenChange, goal, onUpdateGoal, onDeleteGoal }: UpdateGoalDialogProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
-  const { user } = useAuth();
   const { toast } = useToast();
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -73,8 +72,8 @@ export function UpdateGoalDialog({ open, onOpenChange, goal }: UpdateGoalDialogP
   }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user || !goal) {
-        toast({ variant: 'destructive', title: 'Erro', description: 'Usuário ou meta não encontrados.'});
+    if (!goal) {
+        toast({ variant: 'destructive', title: 'Erro', description: 'Meta não encontrada.'});
         return;
     };
     
@@ -87,25 +86,10 @@ export function UpdateGoalDialog({ open, onOpenChange, goal }: UpdateGoalDialogP
         setIsSubmitting(false);
         return;
       }
+      
+      onUpdateGoal({ ...goal, currentValue: currentValueAsNumber });
+      handleClose();
 
-      const formData = new FormData();
-      formData.append('userId', user.uid);
-      formData.append('goalId', goal.id);
-      formData.append('currentValue', String(currentValueAsNumber));
-      formData.append('totalValue', String(goal.totalValue));
-
-      const result = await updateGoalAction(formData);
-
-      if (result?.errors) {
-        if (result.errors.currentValue) {
-            form.setError('currentValue', { message: result.errors.currentValue[0] });
-        } else {
-            toast({ variant: 'destructive', title: 'Erro ao Atualizar Meta', description: result.errors._server?.[0] });
-        }
-      } else {
-        toast({ title: 'Sucesso!', description: 'Sua meta foi atualizada.', className: 'bg-primary text-primary-foreground' });
-        handleClose();
-      }
     } catch (error: any) {
         console.error("Update Goal Submit Error:", error);
         toast({ variant: 'destructive', title: 'Uh oh! Algo deu errado.', description: error.message || 'Ocorreu um erro inesperado.' });
@@ -115,22 +99,12 @@ export function UpdateGoalDialog({ open, onOpenChange, goal }: UpdateGoalDialogP
   }
 
   async function handleDelete() {
-    if (!user || !goal) return;
+    if (!goal) return;
 
     setIsDeleting(true);
     try {
-      const formData = new FormData();
-      formData.append('userId', user.uid);
-      formData.append('goalId', goal.id);
-
-      const result = await deleteGoalAction(formData);
-
-      if (result?.errors) {
-        toast({ variant: 'destructive', title: 'Erro ao Excluir Meta', description: result.errors._server?.[0] });
-      } else {
-        toast({ title: 'Meta Excluída', description: 'Seu objetivo foi removido com sucesso.' });
-        handleClose();
-      }
+      onDeleteGoal(goal.id);
+      handleClose();
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Uh oh! Algo deu errado.', description: error.message });
     } finally {

@@ -4,9 +4,8 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { addDebtAction } from '@/app/actions';
+import type { Debt } from '@/types';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -45,11 +44,11 @@ const formSchema = z.object({
 interface AddDebtDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onAddDebt: (debt: Omit<Debt, 'id' | 'userId'>) => void;
 }
 
-export function AddDebtDialog({ open, onOpenChange }: AddDebtDialogProps) {
+export function AddDebtDialog({ open, onOpenChange, onAddDebt }: AddDebtDialogProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const { user } = useAuth();
   const { toast } = useToast();
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -62,32 +61,21 @@ export function AddDebtDialog({ open, onOpenChange }: AddDebtDialogProps) {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user) {
-        toast({ variant: 'destructive', title: 'Usuário não autenticado' });
-        return;
-    }
-    
     setIsSubmitting(true);
 
     try {
-      const formData = new FormData();
-      formData.append('userId', user.uid);
-      formData.append('creditorName', values.creditorName);
-      formData.append('totalValue', values.totalValue.replace(',', '.'));
-      formData.append('paidValue', values.paidValue.replace(',', '.'));
+      const totalValue = parseFloat(values.totalValue.replace(',', '.'));
+      const paidValue = parseFloat(values.paidValue.replace(',', '.'));
+      
+      onAddDebt({
+        creditorName: values.creditorName,
+        totalValue,
+        paidValue,
+      });
 
-      const result = await addDebtAction(formData);
+      form.reset();
+      onOpenChange(false);
 
-      if (result?.errors) {
-        // Find first error and display it
-        const firstErrorField = Object.keys(result.errors)[0] as keyof typeof result.errors;
-        const firstErrorMessage = result.errors[firstErrorField]?.[0];
-        toast({ variant: 'destructive', title: 'Erro ao Adicionar Dívida', description: firstErrorMessage || 'Verifique os dados e tente novamente.' });
-      } else {
-        toast({ title: 'Sucesso!', description: 'Sua dívida foi adicionada.', className: 'bg-primary text-primary-foreground' });
-        form.reset();
-        onOpenChange(false);
-      }
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Uh oh! Algo deu errado.', description: error.message });
     } finally {

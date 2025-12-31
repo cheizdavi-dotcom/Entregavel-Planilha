@@ -4,14 +4,13 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { addTransactionAction } from '@/app/actions';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { categoriesConfig } from '@/lib/categories';
+import type { Transaction } from '@/types';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -63,11 +62,11 @@ interface AddTransactionDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     initialDate: Date;
+    onAddTransaction: (transaction: Omit<Transaction, 'id' | 'userId'>) => void;
 }
 
-export function AddTransactionDialog({ open, onOpenChange, initialDate }: AddTransactionDialogProps) {
+export function AddTransactionDialog({ open, onOpenChange, initialDate, onAddTransaction }: AddTransactionDialogProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const { user } = useAuth();
   const { toast } = useToast();
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -105,49 +104,21 @@ export function AddTransactionDialog({ open, onOpenChange, initialDate }: AddTra
   const availableCategories = Object.values(categoriesConfig).filter(cat => cat.type === transactionType);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user) {
-        toast({
-            variant: 'destructive',
-            title: 'Usuário não autenticado',
-            description: 'Por favor, faça login para adicionar uma transação.',
-        });
-        return;
-    }
-    
     setIsSubmitting(true);
-
     try {
         const amountAsNumber = parseFloat(values.amount.replace(',', '.'));
+        const transactionData = {
+          type: values.type,
+          amount: amountAsNumber,
+          description: values.description,
+          category: values.category,
+          date: values.date.toISOString(),
+          paymentMethod: values.paymentMethod as any,
+          installments: values.paymentMethod === 'Cartão de Crédito' ? parseInt(values.installments || '1') : undefined,
+        };
 
-        const formData = new FormData();
-        formData.append('userId', user.uid);
-        formData.append('type', values.type);
-        formData.append('amount', amountAsNumber.toString());
-        formData.append('description', values.description);
-        formData.append('category', values.category);
-        formData.append('date', format(values.date, "yyyy-MM-dd'T'HH:mm:ss.SSSxxx")); // Envia a data em formato ISO
-        formData.append('paymentMethod', values.paymentMethod);
-        if (values.paymentMethod === 'Cartão de Crédito' && values.installments) {
-            formData.append('installments', values.installments);
-        }
-
-        const result = await addTransactionAction(formData);
-
-        if (result?.errors) {
-            const serverError = result.errors._server?.[0];
-            toast({
-                variant: 'destructive',
-                title: 'Erro ao Adicionar Transação',
-                description: serverError || 'Por favor, verifique os campos e tente novamente.',
-            });
-        } else {
-            toast({
-                title: 'Sucesso!',
-                description: 'Sua transação foi adicionada.',
-                className: 'bg-primary text-primary-foreground'
-            });
-            onOpenChange(false);
-        }
+        onAddTransaction(transactionData);
+        onOpenChange(false);
     } catch (error: any) {
         toast({
             variant: 'destructive',

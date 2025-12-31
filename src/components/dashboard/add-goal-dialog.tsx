@@ -4,9 +4,8 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { addGoalAction } from '@/app/actions';
+import type { Goal } from '@/types';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -41,11 +40,11 @@ const formSchema = z.object({
 interface AddGoalDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onAddGoal: (goal: Omit<Goal, 'id' | 'userId'>) => void;
 }
 
-export function AddGoalDialog({ open, onOpenChange }: AddGoalDialogProps) {
+export function AddGoalDialog({ open, onOpenChange, onAddGoal }: AddGoalDialogProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const { user } = useAuth();
   const { toast } = useToast();
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -58,11 +57,6 @@ export function AddGoalDialog({ open, onOpenChange }: AddGoalDialogProps) {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user) {
-        toast({ variant: 'destructive', title: 'Usuário não autenticado' });
-        return;
-    }
-    
     setIsSubmitting(true);
 
     try {
@@ -74,22 +68,16 @@ export function AddGoalDialog({ open, onOpenChange }: AddGoalDialogProps) {
         setIsSubmitting(false);
         return;
       }
+      
+      onAddGoal({
+        name: values.name,
+        totalValue,
+        currentValue,
+      });
 
-      const formData = new FormData();
-      formData.append('userId', user.uid);
-      formData.append('name', values.name);
-      formData.append('totalValue', totalValue.toString());
-      formData.append('currentValue', currentValue.toString());
+      form.reset();
+      onOpenChange(false);
 
-      const result = await addGoalAction(formData);
-
-      if (result?.errors) {
-        toast({ variant: 'destructive', title: 'Erro ao Adicionar Meta', description: result.errors._server?.[0] || 'Verifique os dados e tente novamente.' });
-      } else {
-        toast({ title: 'Sucesso!', description: 'Sua meta foi adicionada.', className: 'bg-primary text-primary-foreground' });
-        form.reset();
-        onOpenChange(false);
-      }
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Uh oh! Algo deu errado.', description: error.message });
     } finally {

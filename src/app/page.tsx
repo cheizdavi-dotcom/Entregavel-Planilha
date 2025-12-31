@@ -4,8 +4,8 @@ import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import type { Transaction, Goal } from '@/types';
 import { startOfMonth, endOfMonth, subMonths, isSameMonth } from 'date-fns';
-import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query, orderBy, writeBatch, doc, getDocs } from 'firebase/firestore';
+import { v4 as uuidv4 } from 'uuid';
+import useLocalStorage from '@/hooks/use-local-storage';
 
 import AuthGuard from '@/components/auth-guard';
 import Header from '@/components/dashboard/header';
@@ -53,10 +53,12 @@ const DashboardSkeleton = () => (
 );
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
-  const [allTransactions, setAllTransactions] = React.useState<Transaction[]>([]);
-  const [goals, setGoals] = React.useState<Goal[]>([]);
+  
+  const [allTransactions, setAllTransactions] = useLocalStorage<Transaction[]>(`transactions_${user?.uid}`, []);
+  const [goals, setGoals] = useLocalStorage<Goal[]>(`goals_${user?.uid}`, []);
+  
   const [loading, setLoading] = React.useState(true);
   const [currentDate, setCurrentDate] = React.useState(new Date());
 
@@ -72,46 +74,40 @@ export default function DashboardPage() {
   }, [currentDate]);
 
   React.useEffect(() => {
-    if (user && db) {
-      setLoading(true);
-      const q = query(collection(db, `users/${user.uid}/transactions`), orderBy('date', 'desc'));
-      const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const transactionsData: Transaction[] = [];
-        querySnapshot.forEach((doc) => {
-          transactionsData.push({ id: doc.id, ...doc.data() } as Transaction);
-        });
-        setAllTransactions(transactionsData);
-        setLoading(false);
-      }, (error) => {
-          console.error("Error fetching transactions:", error);
-          toast({ variant: 'destructive', title: 'Erro ao buscar transações', description: error.message });
-          setLoading(false);
-      });
-
-      return () => unsubscribe();
-    } else if (!user) {
-        setAllTransactions([]);
-        setLoading(false);
+    if (!authLoading) {
+      setLoading(false);
     }
-  }, [user, toast]);
+  }, [authLoading]);
 
-  React.useEffect(() => {
-      if (user && db) {
-        const q = query(collection(db, `users/${user.uid}/goals`));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-          const goalsData: Goal[] = [];
-          snapshot.forEach(doc => goalsData.push({ id: doc.id, ...doc.data()} as Goal));
-          setGoals(goalsData);
-        }, (error) => {
-          console.error("Error fetching goals:", error);
-          toast({ variant: 'destructive', title: 'Erro ao buscar metas', description: error.message });
-        });
+  // --- Transaction Handlers ---
+  const handleAddTransaction = (newTransaction: Omit<Transaction, 'id' | 'userId'>) => {
+    if (!user) return;
+    const transactionToAdd: Transaction = {
+        ...newTransaction,
+        id: uuidv4(),
+        userId: user.uid,
+    };
+    setAllTransactions(prev => [...prev, transactionToAdd]);
+    toast({ title: 'Sucesso!', description: 'Sua transação foi adicionada.', className: 'bg-primary text-primary-foreground' });
+  };
 
-        return () => unsubscribe();
-      } else if (!user) {
-        setGoals([]);
-      }
-    }, [user, toast]);
+
+  // --- Goal Handlers ---
+  const handleAddGoal = (newGoal: Omit<Goal, 'id' | 'userId'>) => {
+    if (!user) return;
+    setGoals(prev => [...prev, { ...newGoal, id: uuidv4(), userId: user.uid }]);
+    toast({ title: 'Sucesso!', description: 'Sua meta foi adicionada.', className: 'bg-primary text-primary-foreground' });
+  };
+  
+  const handleUpdateGoal = (updatedGoal: Goal) => {
+    setGoals(prev => prev.map(g => g.id === updatedGoal.id ? updatedGoal : g));
+    toast({ title: 'Sucesso!', description: 'Sua meta foi atualizada.', className: 'bg-primary text-primary-foreground' });
+  };
+
+  const handleDeleteGoal = (goalId: string) => {
+    setGoals(prev => prev.filter(g => g.id !== goalId));
+    toast({ title: 'Meta Excluída', description: 'Seu objetivo foi removido com sucesso.' });
+  };
 
   const handleGoalClick = (goal: Goal) => {
     setSelectedGoal(goal);
@@ -119,57 +115,24 @@ export default function DashboardPage() {
   };
 
   const handleImportConfirm = async (newTransactions: Omit<Transaction, 'id' | 'userId'>[]) => {
-    if (!user || !db) return;
-
-    try {
-        const batch = writeBatch(db);
-        const transactionsCollection = collection(db, `users/${user.uid}/transactions`);
-        newTransactions.forEach(t => {
-            const docRef = doc(transactionsCollection);
-            const transactionData = {
-                ...t,
-                userId: user.uid,
-            };
-            batch.set(docRef, transactionData);
-        });
-        await batch.commit();
-        toast({ title: 'Sucesso!', description: `${newTransactions.length} transações importadas.` });
-    } catch(error: any) {
-        console.error("Error batch importing transactions:", error);
-        toast({ variant: 'destructive', title: 'Erro ao Importar', description: error.message });
-    }
+    if (!user) return;
+    setAllTransactions(prev => [
+      ...prev,
+      ...newTransactions.map(t => ({ ...t, id: uuidv4(), userId: user.uid }))
+    ]);
+    toast({ title: 'Sucesso!', description: `${newTransactions.length} transações importadas.` });
   };
   
   const handleResetData = async () => {
-    if (!user || !db) {
-      toast({ variant: 'destructive', title: 'Não foi possível resetar', description: 'Usuário ou banco de dados não encontrado.' });
+    if (!user) {
+      toast({ variant: 'destructive', title: 'Não foi possível resetar', description: 'Usuário não encontrado.' });
       return;
     }
-    
-    // This is a dangerous operation.
-    console.warn("Resetting data is a destructive operation.");
-    
-    const collectionsToDelete = ['transactions', 'goals', 'debts'];
-    try {
-      const batch = writeBatch(db);
-      for (const colName of collectionsToDelete) {
-        const colRef = collection(db, `users/${user.uid}/${colName}`);
-        const snapshot = await getDocs(colRef);
-        snapshot.forEach(doc => {
-          batch.delete(doc.ref);
-        });
-      }
-      await batch.commit();
-      
-      // Forcing local state update to reflect the cleaning
-      setAllTransactions([]);
-      setGoals([]);
-      
-      toast({ title: "Dados Resetados", description: "Suas transações, metas e dívidas foram apagadas." });
-    } catch (error: any) {
-      console.error("Error resetting data:", error);
-      toast({ variant: 'destructive', title: 'Erro ao Resetar', description: 'Não foi possível apagar todos os dados.' });
-    }
+    setAllTransactions([]);
+    setGoals([]);
+    // Also clear debts from the other page
+    localStorage.removeItem(`debts_${user.uid}`);
+    toast({ title: "Dados Resetados", description: "Suas transações, metas e dívidas foram apagadas deste dispositivo." });
   };
 
   const { transactions, prevMonthTransactions } = React.useMemo(() => {
@@ -257,7 +220,6 @@ export default function DashboardPage() {
         <TransactionList transactions={transactions} loading={loading} />
       </div>
       
-      {/* Espaçador físico para garantir que o último item da lista não seja coberto pelo botão flutuante */}
       <div className="h-[120px]" />
     </div>
   );
@@ -267,22 +229,26 @@ export default function DashboardPage() {
       <div className="relative flex min-h-screen w-full flex-col bg-background">
         <AppSidebar />
         <main className="flex-1 pl-0 md:pl-16 px-4">
-          {loading && allTransactions.length === 0 ? <DashboardSkeleton /> : <MainContent />}
+          {loading ? <DashboardSkeleton /> : <MainContent />}
         </main>
         
         <AddTransactionDialog 
             open={isAddTransactionOpen}
             onOpenChange={setAddTransactionOpen}
             initialDate={dialogInitialDate}
+            onAddTransaction={handleAddTransaction}
         />
         <AddGoalDialog 
             open={isAddGoalOpen} 
-            onOpenChange={setAddGoalOpen} 
+            onOpenChange={setAddGoalOpen}
+            onAddGoal={handleAddGoal} 
         />
         <UpdateGoalDialog
             open={isUpdateGoalOpen}
             onOpenChange={setUpdateGoalOpen}
             goal={selectedGoal}
+            onUpdateGoal={handleUpdateGoal}
+            onDeleteGoal={handleDeleteGoal}
         />
         <ImportDialog
             open={isImportOpen}

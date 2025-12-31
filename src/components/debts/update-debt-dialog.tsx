@@ -4,9 +4,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { updateDebtAction } from '@/app/actions';
 import type { Debt } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 
@@ -40,11 +38,11 @@ interface UpdateDebtDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   debt: Debt | null;
+  onUpdateDebt: (debt: Debt) => void;
 }
 
-export function UpdateDebtDialog({ open, onOpenChange, debt }: UpdateDebtDialogProps) {
+export function UpdateDebtDialog({ open, onOpenChange, debt, onUpdateDebt }: UpdateDebtDialogProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const { user } = useAuth();
   const { toast } = useToast();
   
   const form = useForm<z.infer<typeof formSchema>>({
@@ -60,7 +58,7 @@ export function UpdateDebtDialog({ open, onOpenChange, debt }: UpdateDebtDialogP
   }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user || !debt) return;
+    if (!debt) return;
     
     setIsSubmitting(true);
     try {
@@ -73,20 +71,9 @@ export function UpdateDebtDialog({ open, onOpenChange, debt }: UpdateDebtDialogP
         return;
       }
 
-      const formData = new FormData();
-      formData.append('userId', user.uid);
-      formData.append('debtId', debt.id);
-      formData.append('paidValue', String(newPaidValue));
-      formData.append('totalValue', String(debt.totalValue)); // Required by action validation
+      onUpdateDebt({ ...debt, paidValue: newPaidValue });
+      handleClose();
 
-      const result = await updateDebtAction(formData);
-
-      if (result?.errors) {
-        toast({ variant: 'destructive', title: 'Erro ao Amortizar Dívida', description: result.errors.paidValue?.[0] || result.errors._server?.[0] });
-      } else {
-        toast({ title: 'Sucesso!', description: 'Sua dívida foi atualizada.', className: 'bg-primary text-primary-foreground' });
-        handleClose();
-      }
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Uh oh! Algo deu errado.', description: error.message || 'Ocorreu um erro inesperado.' });
     } finally {

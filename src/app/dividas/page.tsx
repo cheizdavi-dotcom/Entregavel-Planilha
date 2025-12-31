@@ -3,8 +3,8 @@
 import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import type { Debt } from '@/types';
-import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import useLocalStorage from '@/hooks/use-local-storage';
+import { v4 as uuidv4 } from 'uuid';
 
 import AuthGuard from '@/components/auth-guard';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { deleteDebtAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 
 interface DebtCardProps {
@@ -104,9 +103,9 @@ const EmptyState = ({ onAddClick }: { onAddClick: () => void }) => (
 );
 
 export default function DividasPage() {
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const { toast } = useToast();
-    const [debts, setDebts] = React.useState<Debt[]>([]);
+    const [debts, setDebts] = useLocalStorage<Debt[]>(`debts_${user?.uid}`, []);
     const [loading, setLoading] = React.useState(true);
     const [isAddOpen, setAddOpen] = React.useState(false);
     const [isUpdateOpen, setUpdateOpen] = React.useState(false);
@@ -114,37 +113,33 @@ export default function DividasPage() {
     const [isDeleting, setIsDeleting] = React.useState(false);
 
     React.useEffect(() => {
-        if (user && db) {
-            setLoading(true);
-            const q = query(collection(db, `users/${user.uid}/debts`));
-            const unsubscribe = onSnapshot(q, (snapshot) => {
-                const debtsData: Debt[] = [];
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    const remaining = data.totalValue - data.paidValue;
-                    const isPaid = remaining <= 0;
-                    debtsData.push({ id: doc.id, isPaid: isPaid, remaining: remaining, ...data } as Debt);
-                });
-
-                debtsData.sort((a,b) => {
-                    if (a.isPaid && !b.isPaid) return 1;
-                    if (!a.isPaid && b.isPaid) return -1;
-                    return (b.remaining ?? 0) - (a.remaining ?? 0);
-                });
-
-                setDebts(debtsData);
-                setLoading(false);
-            }, (error) => {
-                console.error("Error fetching debts: ", error);
-                setLoading(false);
-            });
-            return () => unsubscribe();
-        } else if (!user) {
-            setDebts([]);
+        if (!authLoading) {
             setLoading(false);
         }
-    }, [user]);
+    }, [authLoading]);
 
+    const sortedDebts = React.useMemo(() => {
+        return [...debts].sort((a, b) => {
+            const remainingA = a.totalValue - a.paidValue;
+            const remainingB = b.totalValue - b.paidValue;
+            const isPaidA = remainingA <= 0;
+            const isPaidB = remainingB <= 0;
+            if (isPaidA && !isPaidB) return 1;
+            if (!isPaidA && isPaidB) return -1;
+            return remainingB - remainingA;
+        });
+    }, [debts]);
+
+    const handleAddDebt = (newDebt: Omit<Debt, 'id' | 'userId'>) => {
+        if (!user) return;
+        setDebts(prev => [...prev, { ...newDebt, id: uuidv4(), userId: user.uid }]);
+        toast({ title: 'Sucesso!', description: 'Sua dívida foi adicionada.', className: 'bg-primary text-primary-foreground' });
+    };
+
+    const handleUpdateDebt = (updatedDebt: Debt) => {
+        setDebts(prev => prev.map(d => d.id === updatedDebt.id ? updatedDebt : d));
+        toast({ title: 'Sucesso!', description: 'Sua dívida foi atualizada.', className: 'bg-primary text-primary-foreground' });
+    };
 
     const handleAmortizeClick = (debt: Debt) => {
         setSelectedDebt(debt);
@@ -156,17 +151,8 @@ export default function DividasPage() {
     
         setIsDeleting(true);
         try {
-          const formData = new FormData();
-          formData.append('userId', user.uid);
-          formData.append('debtId', debt.id);
-    
-          const result = await deleteDebtAction(formData);
-    
-          if (result?.errors) {
-            toast({ variant: 'destructive', title: 'Erro ao Excluir Dívida', description: result.errors._server?.[0] });
-          } else {
+            setDebts(prev => prev.filter(d => d.id !== debt.id));
             toast({ title: 'Dívida Excluída', description: 'A dívida foi removida com sucesso.' });
-          }
         } catch (error: any) {
           toast({ variant: 'destructive', title: 'Uh oh! Algo deu errado.', description: error.message });
         } finally {
@@ -193,8 +179,8 @@ export default function DividasPage() {
                                     <SkeletonCard />
                                     <SkeletonCard />
                                 </>
-                            ) : debts.length > 0 ? (
-                                debts.map(debt => (
+                            ) : sortedDebts.length > 0 ? (
+                                sortedDebts.map(debt => (
                                     <AlertDialog key={debt.id}>
                                         <DebtCard 
                                             debt={debt} 
@@ -229,8 +215,8 @@ export default function DividasPage() {
                 </main>
             </div>
             
-            <AddDebtDialog open={isAddOpen} onOpenChange={setAddOpen} />
-            <UpdateDebtDialog open={isUpdateOpen} onOpenChange={setUpdateOpen} debt={selectedDebt} />
+            <AddDebtDialog open={isAddOpen} onOpenChange={setAddOpen} onAddDebt={handleAddDebt} />
+            <UpdateDebtDialog open={isUpdateOpen} onOpenChange={setUpdateOpen} debt={selectedDebt} onUpdateDebt={handleUpdateDebt} />
 
              <Button 
                 className="fixed bottom-4 right-4 h-16 w-16 rounded-full shadow-lg shadow-primary/30 z-50 md:bottom-8 md:right-8"
