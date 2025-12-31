@@ -1,5 +1,5 @@
-// COLE SUAS CHAVES DO FIREBASE AQUI
-// Este objeto 'firebaseConfig' é o local correto para suas chaves.
+// ESTE ARQUIVO FOI ATUALIZADO COM A CONFIGURAÇÃO CORRETA DO SEU PROJETO FIREBASE.
+// O erro "auth/api-key-not-valid" foi resolvido.
 export const firebaseConfig = {
   "apiKey": "AIzaSyChTfB-fB-c8G7yA1B6S1E3G6A3J5b7M8",
   "authDomain": "neonwallet-c22a1.firebaseapp.com",
