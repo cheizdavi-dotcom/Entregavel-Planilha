@@ -35,7 +35,7 @@ export default function LoginPage() {
       toast({
         variant: 'destructive',
         title: 'Erro de Configuração',
-        description: 'A configuração do Firebase está ausente.',
+        description: 'A configuração do Firebase está ausente. Verifique o arquivo firebase-config.ts',
       });
       return;
     }
@@ -48,6 +48,8 @@ export default function LoginPage() {
       let description = 'Ocorreu um erro ao fazer login.';
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         description = 'E-mail ou senha inválidos. Por favor, verifique e tente novamente.'
+      } else if (error.code === 'auth/api-key-not-valid') {
+        description = 'Chave de API do Firebase inválida. Verifique sua configuração.'
       }
       toast({
         variant: 'destructive',

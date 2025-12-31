@@ -228,7 +228,7 @@ export default function DashboardPage() {
     <AuthGuard>
       <div className="relative flex min-h-screen w-full flex-col bg-background">
         <AppSidebar />
-        <main className="flex-1 pl-0 md:pl-16 px-4">
+        <main className="flex-1 pl-0 md:pl-16">
           {loading ? <DashboardSkeleton /> : <MainContent />}
         </main>
         
