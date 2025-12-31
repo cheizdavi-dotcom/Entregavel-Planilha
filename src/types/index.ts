@@ -30,8 +30,6 @@ export type Debt = {
     creditorName: string;
     totalValue: number;
     paidValue: number;
-    interestRate: number; // Taxa de juros mensal em %
-    dueDate: number; // Dia do vencimento (1-31)
 };
 
 export type ParsedTransaction = {

@@ -27,7 +27,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const formSchema = z.object({
   creditorName: z.string().min(2, 'Nome muito curto.').max(50),
@@ -37,11 +36,6 @@ const formSchema = z.object({
   paidValue: z.string()
     .refine(val => /^\d+([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido.' })
     .refine(val => parseFloat(val.replace(',', '.')) >= 0, { message: 'Valor não pode ser negativo.' }),
-  interestRate: z.string()
-    .refine(val => /^\d+([,.]\d{1,2})?$/.test(val), { message: 'Taxa inválida.' })
-    .refine(val => parseFloat(val.replace(',', '.')) >= 0, { message: 'Taxa não pode ser negativa.' }),
-  dueDate: z.string()
-    .refine(val => /^\d+$/.test(val) && parseInt(val, 10) >= 1 && parseInt(val, 10) <= 31, { message: 'Dia inválido (1-31).' }),
 }).refine(data => parseFloat(data.paidValue.replace(',', '.')) <= parseFloat(data.totalValue.replace(',', '.')), {
     message: "O valor pago não pode ser maior que o valor total.",
     path: ["paidValue"],
@@ -64,8 +58,6 @@ export function AddDebtDialog({ open, onOpenChange }: AddDebtDialogProps) {
       creditorName: '',
       totalValue: '',
       paidValue: '0',
-      interestRate: '0',
-      dueDate: String(new Date().getDate()),
     },
   });
 
@@ -83,8 +75,6 @@ export function AddDebtDialog({ open, onOpenChange }: AddDebtDialogProps) {
       formData.append('creditorName', values.creditorName);
       formData.append('totalValue', values.totalValue.replace(',', '.'));
       formData.append('paidValue', values.paidValue.replace(',', '.'));
-      formData.append('interestRate', values.interestRate.replace(',', '.'));
-      formData.append('dueDate', values.dueDate);
 
       const result = await addDebtAction(formData);
 
@@ -111,8 +101,6 @@ export function AddDebtDialog({ open, onOpenChange }: AddDebtDialogProps) {
         creditorName: '',
         totalValue: '',
         paidValue: '0',
-        interestRate: '0',
-        dueDate: String(new Date().getDate()),
       });
     }
   }, [open, form]);
@@ -174,47 +162,7 @@ export function AddDebtDialog({ open, onOpenChange }: AddDebtDialogProps) {
                     )}
                     />
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                    control={form.control}
-                    name="interestRate"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Juros Mensal (%)</FormLabel>
-                        <FormControl>
-                            <div className="relative">
-                            <span className="absolute inset-y-0 right-3 flex items-center text-muted-foreground font-inter">%</span>
-                            <Input type="text" placeholder="5,00" {...field} className="pr-10 font-inter font-bold" disabled={isSubmitting}/>
-                            </div>
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={form.control}
-                    name="dueDate"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Dia do Vencimento</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
-                                <FormControl>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Escolha o dia" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {[...Array(31)].map((_, i) => (
-                                        <SelectItem key={i+1} value={`${i+1}`}>{`Todo dia ${i+1}`}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                </div>
+                
                 <DialogFooter className='pt-4 sticky bottom-0 bg-background pb-0'>
                     <DialogClose asChild>
                         <Button type="button" variant="ghost" disabled={isSubmitting}>Cancelar</Button>

@@ -153,8 +153,6 @@ const debtSchema = z.object({
   creditorName: z.string().min(1, 'O nome do credor é obrigatório.').max(50),
   totalValue: z.coerce.number().positive('O valor total deve ser positivo.'),
   paidValue: z.coerce.number().min(0, 'O valor pago não pode ser negativo.'),
-  interestRate: z.coerce.number().min(0, 'A taxa de juros não pode ser negativa.'),
-  dueDate: z.coerce.number().int().min(1).max(31, 'O dia do vencimento deve ser entre 1 e 31.'),
 }).refine(data => data.paidValue <= data.totalValue, {
   message: "O valor pago não pode ser maior que o valor total da dívida.",
   path: ["paidValue"],
@@ -166,16 +164,12 @@ export async function addDebtAction(formData: FormData) {
     creditorName: String(formData.get('creditorName')),
     totalValue: String(formData.get('totalValue')),
     paidValue: String(formData.get('paidValue')),
-    interestRate: String(formData.get('interestRate')),
-    dueDate: String(formData.get('dueDate')),
   };
 
   const validatedFields = debtSchema.safeParse({
     ...values,
     totalValue: parseFloat(values.totalValue),
     paidValue: parseFloat(values.paidValue),
-    interestRate: parseFloat(values.interestRate),
-    dueDate: parseInt(values.dueDate, 10),
   });
 
   if (!validatedFields.success) return { errors: validatedFields.error.flatten().fieldErrors };
@@ -230,7 +224,7 @@ const deleteDebtSchema = z.object({
 });
 
 export async function deleteDebtAction(formData: FormData) {
-    const values = { userId: formData.get('userId'), debtId: formData.get('debtId') };
+    const values = { userId: formData.get('userId'), debtId: formData.get('goalId') };
     const validatedFields = deleteDebtSchema.safeParse(values);
     if (!validatedFields.success) return { errors: validatedFields.error.flatten().fieldErrors };
     if (!db) return { errors: { _server: ['O banco de dados não está configurado.'] } };

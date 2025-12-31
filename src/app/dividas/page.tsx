@@ -8,7 +8,7 @@ import { collection, onSnapshot, query } from 'firebase/firestore';
 
 import AuthGuard from '@/components/auth-guard';
 import { Button } from '@/components/ui/button';
-import { Plus, AlertTriangle, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/utils';
@@ -16,7 +16,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AddDebtDialog } from '@/components/debts/add-debt-dialog';
 import { UpdateDebtDialog } from '@/components/debts/update-debt-dialog';
 import AppSidebar from '@/components/app-sidebar';
-import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,7 +40,6 @@ const DebtCard = ({ debt, onAmortizeClick, onDeleteClick }: DebtCardProps) => {
     const percentage = debt.totalValue > 0 ? (debt.paidValue / debt.totalValue) * 100 : 0;
     const remaining = debt.totalValue - debt.paidValue;
     const isPaid = remaining <= 0;
-    const hasHighInterest = debt.interestRate > 5;
 
     return (
         <Card className="glass-dark flex flex-col justify-between transition-all hover:-translate-y-1 hover:shadow-primary/20">
@@ -53,15 +51,6 @@ const DebtCard = ({ debt, onAmortizeClick, onDeleteClick }: DebtCardProps) => {
                         <div className={`h-2.5 w-2.5 rounded-full ${isPaid ? 'bg-primary' : 'bg-destructive'}`}></div>
                     </div>
                 </div>
-                 <div className='flex items-center gap-2 mt-2'>
-                    {hasHighInterest && !isPaid && (
-                        <Badge variant="destructive" className="w-fit">
-                            <AlertTriangle className="mr-1 h-3 w-3" />
-                            Juros Críticos: {debt.interestRate}%
-                        </Badge>
-                    )}
-                     <Badge variant="outline">Vence dia {debt.dueDate}</Badge>
-                 </div>
             </CardHeader>
             <CardContent className="space-y-3">
                 <Progress value={percentage} className="h-3" indicatorClassName={isPaid ? "bg-primary" : "bg-destructive"}/>
