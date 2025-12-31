@@ -224,7 +224,7 @@ const deleteDebtSchema = z.object({
 });
 
 export async function deleteDebtAction(formData: FormData) {
-    const values = { userId: formData.get('userId'), debtId: formData.get('goalId') };
+    const values = { userId: formData.get('userId'), debtId: formData.get('debtId') };
     const validatedFields = deleteDebtSchema.safeParse(values);
     if (!validatedFields.success) return { errors: validatedFields.error.flatten().fieldErrors };
     if (!db) return { errors: { _server: ['O banco de dados não está configurado.'] } };
