@@ -1,10 +1,11 @@
 // COLE SUAS CHAVES DO FIREBASE AQUI
 // Este objeto 'firebaseConfig' é o local correto para suas chaves.
 export const firebaseConfig = {
-  "projectId": "studio-7230625454-2a5c2",
-  "appId": "1:908240042642:web:1b4cd5d5eb1d1ffe17c44b",
-  "apiKey": "AIzaSyBPd6NvwuDnlkT0rOVeIrTpO5m3jezszoo",
-  "authDomain": "studio-7230625454-2a5c2.firebaseapp.com",
-  "messagingSenderId": "908240042642",
-  "measurementId": ""
+  "projectId": "neonwallet-c22a1",
+  "appId": "1:655428450372:web:2530b127598c9e5e7b5f13",
+  "storageBucket": "neonwallet-c22a1.appspot.com",
+  "apiKey": "AIzaSyChTfB-fB-c8G7yA1B6S1E3G6A3J5b7M8",
+  "authDomain": "neonwallet-c22a1.firebaseapp.com",
+  "messagingSenderId": "655428450372",
+  "measurementId": "G-99T8J8E8R8"
 };
