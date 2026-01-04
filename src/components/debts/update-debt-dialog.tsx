@@ -7,7 +7,6 @@ import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import type { Debt } from '@/types';
 import { formatCurrency } from '@/lib/utils';
-
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -63,16 +62,18 @@ export function UpdateDebtDialog({ open, onOpenChange, debt, onUpdateDebt }: Upd
     setIsSubmitting(true);
     try {
       const paymentValue = parseFloat(values.paymentValue.replace(',', '.'));
-      const newPaidValue = debt.paidValue + paymentValue;
+      const newPaidValue = debt.totalAmount - debt.currentBalance + paymentValue;
+      const newBalance = debt.currentBalance - paymentValue;
       
-      if (newPaidValue > debt.totalValue) {
-        form.setError('paymentValue', { message: `O pagamento excede a dívida. Faltam ${formatCurrency(debt.totalValue - debt.paidValue)}.` });
+      if (newBalance < 0) {
+        form.setError('paymentValue', { message: `O pagamento excede a dívida. Faltam ${formatCurrency(debt.currentBalance)}.` });
         setIsSubmitting(false);
         return;
       }
 
-      onUpdateDebt({ ...debt, paidValue: newPaidValue });
+      onUpdateDebt({ ...debt, currentBalance: newBalance });
       handleClose();
+      toast({ title: 'Sucesso!', description: 'Pagamento registrado. Você está mais perto da sua liberdade!', className: 'bg-primary text-primary-foreground' });
 
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Uh oh! Algo deu errado.', description: error.message || 'Ocorreu um erro inesperado.' });
@@ -83,16 +84,18 @@ export function UpdateDebtDialog({ open, onOpenChange, debt, onUpdateDebt }: Upd
 
   
   React.useEffect(() => {
-    form.reset({ paymentValue: '' });
+    if (debt) {
+        form.reset({ paymentValue: String(debt.monthlyPayment).replace('.', ',') });
+    }
   }, [debt, form, open]);
 
-  const remainingValue = debt ? debt.totalValue - debt.paidValue : 0;
+  const remainingValue = debt ? debt.currentBalance : 0;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px] glass-dark border-border/20">
         <DialogHeader>
-          <DialogTitle>Amortizar Dívida: {debt?.creditorName || ''}</DialogTitle>
+          <DialogTitle>⚡ Pagar Parcela: {debt?.name || ''}</DialogTitle>
           <DialogDescription>
             {remainingValue > 0 
                 ? `Faltam ${formatCurrency(remainingValue)} para quitar esta dívida.`
@@ -125,7 +128,7 @@ export function UpdateDebtDialog({ open, onOpenChange, debt, onUpdateDebt }: Upd
                         <Button type="button" variant="ghost" disabled={isSubmitting}>Cancelar</Button>
                     </DialogClose>
                     <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? "Amortizando..." : "Amortizar"}
+                        {isSubmitting ? "Registrando..." : "Registrar Pagamento"}
                     </Button>
                 </div>
             </DialogFooter>

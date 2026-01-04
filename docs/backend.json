@@ -29,16 +29,19 @@
       "required": ["userId", "name", "currentValue", "totalValue"]
     },
     "Debt": {
-        "title": "Debt",
-        "description": "Represents a user's financial debt.",
-        "type": "object",
-        "properties": {
-            "userId": { "type": "string" },
-            "creditorName": { "type": "string" },
-            "totalValue": { "type": "number" },
-            "paidValue": { "type": "number" }
-        },
-        "required": ["userId", "creditorName", "totalValue", "paidValue"]
+      "title": "Debt",
+      "description": "Represents a user's financial debt.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "currentBalance": { "type": "number" },
+        "monthlyPayment": { "type": "number" },
+        "dueDate": { "type": "number" },
+        "category": { "type": "string" }
+      },
+      "required": ["userId", "name", "totalAmount", "currentBalance", "monthlyPayment"]
     }
   },
   "auth": {

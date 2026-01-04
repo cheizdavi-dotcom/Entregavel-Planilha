@@ -5,10 +5,12 @@ import { useAuth } from '@/hooks/use-auth';
 import type { Debt } from '@/types';
 import useLocalStorage from '@/hooks/use-local-storage';
 import { v4 as uuidv4 } from 'uuid';
+import { addMonths, format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 import AuthGuard from '@/components/auth-guard';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Zap, Calendar, DollarSign } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/utils';
@@ -31,43 +33,52 @@ import { useToast } from '@/hooks/use-toast';
 
 interface DebtCardProps {
     debt: Debt;
-    onAmortizeClick: (debt: Debt) => void;
+    onPayClick: (debt: Debt) => void;
     onDeleteClick: (debt: Debt) => void;
 }
 
-const DebtCard = ({ debt, onAmortizeClick, onDeleteClick }: DebtCardProps) => {
-    const percentage = debt.totalValue > 0 ? (debt.paidValue / debt.totalValue) * 100 : 0;
-    const remaining = debt.totalValue - debt.paidValue;
-    const isPaid = remaining <= 0;
+const DebtCard = ({ debt, onPayClick, onDeleteClick }: DebtCardProps) => {
+    const paidValue = debt.totalAmount - debt.currentBalance;
+    const percentage = debt.totalAmount > 0 ? (paidValue / debt.totalAmount) * 100 : 0;
+    const isPaid = debt.currentBalance <= 0;
+    
+    let freedomDate = 'N/A';
+    if (!isPaid && debt.monthlyPayment > 0) {
+        const monthsRemaining = Math.ceil(debt.currentBalance / debt.monthlyPayment);
+        const futureDate = addMonths(new Date(), monthsRemaining);
+        freedomDate = format(futureDate, "MMMM 'de' yyyy", { locale: ptBR });
+    }
 
     return (
         <Card className="glass-dark flex flex-col justify-between transition-all hover:-translate-y-1 hover:shadow-primary/20">
             <CardHeader>
                 <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg">{debt.creditorName}</CardTitle>
+                    <CardTitle className="text-lg">{debt.name}</CardTitle>
                     <div className="flex items-center gap-2">
                         <span className={`text-xs font-semibold ${isPaid ? 'text-primary' : 'text-destructive'}`}>{isPaid ? 'Quitado' : 'Em Aberto'}</span>
                         <div className={`h-2.5 w-2.5 rounded-full ${isPaid ? 'bg-primary' : 'bg-destructive'}`}></div>
                     </div>
                 </div>
+                <p className="text-sm text-muted-foreground">{debt.category}</p>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-4">
                 <Progress value={percentage} className="h-3" indicatorClassName={isPaid ? "bg-primary" : "bg-destructive"}/>
                 <div className="text-sm text-muted-foreground">
                     {isPaid ? (
                         <p className="font-semibold text-primary">Parabéns! Dívida quitada.</p>
                     ) : (
-                        <p>Faltam <span className="font-bold text-foreground font-inter">{formatCurrency(remaining)}</span> para sua liberdade</p>
+                        <p>Liberdade em: <span className="font-bold text-foreground font-inter capitalize">{freedomDate}</span></p>
                     )}
                 </div>
-                <div className="text-xs text-muted-foreground font-inter font-bold">
-                    {formatCurrency(debt.paidValue)} / {formatCurrency(debt.totalValue)}
+                 <div className="flex justify-between items-center text-xs text-muted-foreground font-inter font-bold">
+                    <span>{formatCurrency(paidValue)} / {formatCurrency(debt.totalAmount)}</span>
+                    <span className="text-right">{formatCurrency(debt.monthlyPayment)} / mês</span>
                 </div>
             </CardContent>
             <CardFooter className="pt-4 flex gap-2">
-                {!isPaid && (
-                     <Button onClick={() => onAmortizeClick(debt)} className="w-full">Amortizar</Button>
-                )}
+                <Button onClick={() => onPayClick(debt)} className="w-full" disabled={isPaid}>
+                   <Zap className="mr-2 h-4 w-4" /> Pagar Parcela
+                </Button>
                  <AlertDialogTrigger asChild>
                     <Button variant="destructive" size="icon" className="shrink-0" disabled={isPaid}>
                         <Trash2 className="h-4 w-4" />
@@ -78,18 +89,50 @@ const DebtCard = ({ debt, onAmortizeClick, onDeleteClick }: DebtCardProps) => {
     );
 };
 
+const SummaryCard = ({ title, value, icon, loading }: { title: string, value: string, icon: React.ReactNode, loading: boolean }) => {
+    if (loading) {
+        return (
+            <Card className="glass-dark">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                   <Skeleton className="h-4 w-24" />
+                   <Skeleton className="h-6 w-6" />
+                </CardHeader>
+                <CardContent>
+                    <Skeleton className="h-7 w-32" />
+                    <Skeleton className="h-3 w-28 mt-1" />
+                </CardContent>
+            </Card>
+        )
+    }
+    return (
+        <Card className="glass-dark">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{title}</CardTitle>
+                {icon}
+            </CardHeader>
+            <CardContent>
+                <p className="text-2xl font-bold font-inter">{value}</p>
+                <p className="text-xs text-muted-foreground">e contando...</p>
+            </CardContent>
+        </Card>
+    )
+};
+
+
 const SkeletonCard = () => (
     <Card className="glass-dark">
         <CardHeader>
             <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-4 w-20" />
         </CardHeader>
         <CardContent className="space-y-4">
             <Skeleton className="h-3 w-full" />
             <Skeleton className="h-4 w-48" />
             <Skeleton className="h-3 w-36" />
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex gap-2">
             <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-10" />
         </CardFooter>
     </Card>
 );
@@ -120,14 +163,30 @@ export default function DividasPage() {
 
     const sortedDebts = React.useMemo(() => {
         return [...debts].sort((a, b) => {
-            const remainingA = a.totalValue - a.paidValue;
-            const remainingB = b.totalValue - b.paidValue;
-            const isPaidA = remainingA <= 0;
-            const isPaidB = remainingB <= 0;
+            const isPaidA = a.currentBalance <= 0;
+            const isPaidB = b.currentBalance <= 0;
             if (isPaidA && !isPaidB) return 1;
             if (!isPaidA && isPaidB) return -1;
-            return remainingB - remainingA;
+            return b.currentBalance - a.currentBalance;
         });
+    }, [debts]);
+
+    const { totalDue, freedomDate } = React.useMemo(() => {
+        const activeDebts = debts.filter(d => d.currentBalance > 0);
+        const totalDue = activeDebts.reduce((sum, d) => sum + d.currentBalance, 0);
+        
+        let freedomDate = "N/A";
+        const totalMonthlyPayment = activeDebts.reduce((sum, d) => sum + d.monthlyPayment, 0);
+
+        if (totalDue > 0 && totalMonthlyPayment > 0) {
+            const monthsRemaining = Math.ceil(totalDue / totalMonthlyPayment);
+            const futureDate = addMonths(new Date(), monthsRemaining);
+            freedomDate = format(futureDate, "MMM yyyy", { locale: ptBR });
+        } else if (totalDue === 0 && debts.length > 0) {
+            freedomDate = "🎉";
+        }
+
+        return { totalDue, freedomDate };
     }, [debts]);
 
     const handleAddDebt = (newDebt: Omit<Debt, 'id' | 'userId'>) => {
@@ -138,10 +197,10 @@ export default function DividasPage() {
 
     const handleUpdateDebt = (updatedDebt: Debt) => {
         setDebts(prev => prev.map(d => d.id === updatedDebt.id ? updatedDebt : d));
-        toast({ title: 'Sucesso!', description: 'Sua dívida foi atualizada.', className: 'bg-primary text-primary-foreground' });
+        // A toast para sucesso é mostrada no próprio dialog de atualização
     };
 
-    const handleAmortizeClick = (debt: Debt) => {
+    const handlePayClick = (debt: Debt) => {
         setSelectedDebt(debt);
         setUpdateOpen(true);
     };
@@ -171,6 +230,21 @@ export default function DividasPage() {
                             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Exterminador de Dívidas</h1>
                             <p className="text-muted-foreground">Monitore e elimine suas dívidas para alcançar sua liberdade financeira.</p>
                         </div>
+
+                         <div className="grid gap-4 md:grid-cols-2 mb-6">
+                            <SummaryCard 
+                                title="Total Devido"
+                                value={formatCurrency(totalDue)}
+                                icon={<DollarSign className="text-muted-foreground h-5 w-5" />}
+                                loading={loading}
+                            />
+                            <SummaryCard 
+                                title="Previsão de Quitação"
+                                value={freedomDate}
+                                icon={<Calendar className="text-muted-foreground h-5 w-5" />}
+                                loading={loading}
+                            />
+                        </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {loading ? (
@@ -184,7 +258,7 @@ export default function DividasPage() {
                                     <AlertDialog key={debt.id}>
                                         <DebtCard 
                                             debt={debt} 
-                                            onAmortizeClick={handleAmortizeClick} 
+                                            onPayClick={handlePayClick} 
                                             onDeleteClick={() => setSelectedDebt(debt)}
                                         />
                                          <AlertDialogContent>

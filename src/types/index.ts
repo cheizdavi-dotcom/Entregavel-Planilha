@@ -27,9 +27,12 @@ export type Goal = {
 export type Debt = {
     id: string;
     userId: string;
-    creditorName: string;
-    totalValue: number;
-    paidValue: number;
+    name: string;
+    totalAmount: number;
+    currentBalance: number;
+    monthlyPayment: number;
+    dueDate: number; // Day of the month (1-31)
+    category: string;
 };
 
 export type ParsedTransaction = {
