@@ -22,31 +22,39 @@ const SupportWidget = () => {
     <Popover>
       <PopoverTrigger asChild>
         <Button
-          className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full bg-secondary text-secondary-foreground shadow-lg transition-transform hover:scale-110 focus:ring-secondary"
+          className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full bg-secondary text-secondary-foreground shadow-lg transition-all hover:shadow-xl hover:scale-110 focus:ring-secondary"
           aria-label="Abrir menu de suporte"
         >
-          <LifeBuoy className="h-7 w-7" />
+          <MessageSquare className="h-6 w-6" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 mb-2" side="top" align="end">
+      <PopoverContent className="w-72 rounded-xl mb-2 bg-zinc-900 border-zinc-800" side="top" align="end">
         <div className="grid gap-4">
-          <div className="space-y-2">
-            <h4 className="font-medium leading-none">Precisa de ajuda?</h4>
+          <div className="space-y-1">
+            <h4 className="font-medium leading-none text-foreground">👋 Precisa de ajuda?</h4>
             <p className="text-sm text-muted-foreground">
               Fale com nosso time.
             </p>
           </div>
           <div className="grid gap-2">
-            <Button asChild variant="outline">
-              <Link href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-                <MessageSquare className="mr-2 h-4 w-4" /> Falar no WhatsApp
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href={emailUrl} target="_blank" rel="noopener noreferrer">
-                <Mail className="mr-2 h-4 w-4" /> Relatar Bug / Email
-              </Link>
-            </Button>
+            <Link href={whatsappUrl} target="_blank" rel="noopener noreferrer" className='no-underline'>
+                <div className='flex items-center p-3 rounded-lg hover:bg-zinc-800 transition-colors'>
+                    <MessageSquare className="mr-3 h-6 w-6 text-green-500" />
+                    <div>
+                        <p className='font-bold text-foreground'>Atendimento via WhatsApp</p>
+                        <p className='text-xs text-muted-foreground'>Resposta rápida</p>
+                    </div>
+                </div>
+            </Link>
+             <Link href={emailUrl} target="_blank" rel="noopener noreferrer" className='no-underline'>
+                <div className='flex items-center p-3 rounded-lg hover:bg-zinc-800 transition-colors'>
+                    <Mail className="mr-3 h-6 w-6 text-muted-foreground" />
+                    <div>
+                        <p className='font-bold text-foreground'>Relatar um problema</p>
+                        <p className='text-xs text-muted-foreground'>Via e-mail</p>
+                    </div>
+                </div>
+            </Link>
           </div>
         </div>
       </PopoverContent>
