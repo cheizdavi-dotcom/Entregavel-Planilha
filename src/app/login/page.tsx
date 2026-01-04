@@ -113,7 +113,7 @@ export default function LoginPage() {
             </p>
             <p>
                 Problemas para entrar?{' '}
-                <a href="mailto:suporte@neonwallet.com" className="underline hover:text-primary">
+                <a href="mailto:plannerfinanceiro247@gmail.com" className="underline hover:text-primary">
                 Peça ajuda
                 </a>
             </p>

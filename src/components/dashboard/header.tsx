@@ -103,7 +103,7 @@ const UserMenu = ({ onResetData }: { onResetData: () => void }) => {
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                      <DropdownMenuItem asChild>
-                        <a href="mailto:suporte@neonwallet.com" className="w-full">
+                        <a href="mailto:plannerfinanceiro247@gmail.com" className="w-full">
                             <LifeBuoy className="mr-2 h-4 w-4" />
                             <span>Suporte</span>
                         </a>
