@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Import, LogOut, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Import, LogOut, Trash2, LifeBuoy } from 'lucide-react';
 import { format, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from '@/hooks/use-auth';
@@ -102,6 +102,12 @@ const UserMenu = ({ onResetData }: { onResetData: () => void }) => {
                         </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
+                     <DropdownMenuItem asChild>
+                        <a href="mailto:suporte@neonwallet.com" className="w-full">
+                            <LifeBuoy className="mr-2 h-4 w-4" />
+                            <span>Suporte</span>
+                        </a>
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setIsAlertOpen(true)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
                         <Trash2 className="mr-2 h-4 w-4" />
                         <span>Resetar Dados</span>

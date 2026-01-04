@@ -104,11 +104,19 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-4 text-center text-sm">
-            Não tem uma conta?{' '}
-            <Link href="/signup" className="underline hover:text-primary">
-              Cadastre-se
-            </Link>
+          <div className="mt-4 text-center text-sm space-y-2">
+            <p>
+                Não tem uma conta?{' '}
+                <Link href="/signup" className="underline hover:text-primary">
+                Cadastre-se
+                </Link>
+            </p>
+            <p>
+                Problemas para entrar?{' '}
+                <a href="mailto:suporte@neonwallet.com" className="underline hover:text-primary">
+                Peça ajuda
+                </a>
+            </p>
           </div>
 
         </CardContent>
