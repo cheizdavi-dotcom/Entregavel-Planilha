@@ -73,68 +73,70 @@ export default function TransactionList({ transactions, loading }: TransactionLi
         <CardDescription>Suas movimentações mais recentes.</CardDescription>
       </CardHeader>
       <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Descrição</TableHead>
-                <TableHead className="hidden md:table-cell">Categoria</TableHead>
-                <TableHead className="hidden md:table-cell">Pagamento</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <>
-                    <SkeletonRow />
-                    <SkeletonRow />
-                    <SkeletonRow />
-                    <SkeletonRow />
-                    <SkeletonRow />
-                </>
-              ) : hasTransactions ? (
-                transactions.map((t) => (
-                    <TableRow key={t.id}>
-                    <TableCell className='py-4'>
-                        <div className="flex items-center gap-4">
-                            <div className={`flex h-10 w-10 items-center justify-center rounded-full ${t.type === 'income' ? 'bg-primary/10' : 'bg-destructive/10'}`}>
-                                {t.type === 'income' ? (
-                                    <ArrowUp className="h-5 w-5 text-primary" />
-                                ) : (
-                                    <ArrowDown className="h-5 w-5 text-destructive" />
-                                )}
+          <div className='w-full overflow-x-auto'>
+            <Table>
+                <TableHeader>
+                <TableRow>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead className="hidden md:table-cell">Categoria</TableHead>
+                    <TableHead className="hidden md:table-cell">Pagamento</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                </TableRow>
+                </TableHeader>
+                <TableBody>
+                {loading ? (
+                    <>
+                        <SkeletonRow />
+                        <SkeletonRow />
+                        <SkeletonRow />
+                        <SkeletonRow />
+                        <SkeletonRow />
+                    </>
+                ) : hasTransactions ? (
+                    transactions.map((t) => (
+                        <TableRow key={t.id}>
+                        <TableCell className='py-4'>
+                            <div className="flex items-center gap-4">
+                                <div className={`flex h-10 w-10 items-center justify-center rounded-full ${t.type === 'income' ? 'bg-primary/10' : 'bg-destructive/10'}`}>
+                                    {t.type === 'income' ? (
+                                        <ArrowUp className="h-5 w-5 text-primary" />
+                                    ) : (
+                                        <ArrowDown className="h-5 w-5 text-destructive" />
+                                    )}
+                                </div>
+                                <div className='flex flex-col'>
+                                    <span className="font-medium text-base">{t.description}</span>
+                                    <span className="text-sm text-muted-foreground md:hidden">{t.category}</span>
+                                </div>
                             </div>
-                            <div className='flex flex-col'>
-                                <span className="font-medium text-base">{t.description}</span>
-                                <span className="text-sm text-muted-foreground md:hidden">{t.category}</span>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                            <Badge variant="outline" className="flex w-fit items-center gap-1.5 py-1 px-2">
+                                <CategoryIcon category={t.category} className="h-3.5 w-3.5" />
+                                {t.category}
+                            </Badge>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-muted-foreground">
+                            {t.paymentMethod} {t.installments && t.installments > 1 && `(${t.installments}x)`}
+                        </TableCell>
+                        <TableCell
+                            className={`text-right font-inter font-bold text-base ${
+                            t.type === 'income' ? 'text-primary' : 'text-foreground'
+                            }`}
+                        >
+                            {t.type === 'expense' && '- '}{formatCurrency(t.amount)}
+                            <div className='text-xs font-normal text-muted-foreground'>
+                                {new Date(t.date).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'})}
                             </div>
-                        </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                        <Badge variant="outline" className="flex w-fit items-center gap-1.5 py-1 px-2">
-                            <CategoryIcon category={t.category} className="h-3.5 w-3.5" />
-                            {t.category}
-                        </Badge>
-                    </TableCell>
-                     <TableCell className="hidden md:table-cell text-muted-foreground">
-                        {t.paymentMethod} {t.installments && t.installments > 1 && `(${t.installments}x)`}
-                    </TableCell>
-                    <TableCell
-                        className={`text-right font-inter font-bold text-base ${
-                        t.type === 'income' ? 'text-primary' : 'text-foreground'
-                        }`}
-                    >
-                        {t.type === 'expense' && '- '}{formatCurrency(t.amount)}
-                        <div className='text-xs font-normal text-muted-foreground'>
-                            {new Date(t.date).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'})}
-                        </div>
-                    </TableCell>
-                    </TableRow>
-                ))
-              ) : (
-                <EmptyState />
-              )}
-            </TableBody>
-          </Table>
+                        </TableCell>
+                        </TableRow>
+                    ))
+                ) : (
+                    <EmptyState />
+                )}
+                </TableBody>
+            </Table>
+          </div>
       </CardContent>
     </Card>
   );

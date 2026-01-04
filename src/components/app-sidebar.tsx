@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Target, LogOut } from 'lucide-react';
+import { Home, Target, LogOut, PanelLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -11,11 +11,19 @@ import { useAuth } from '@/hooks/use-auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { Logo } from './icons/logo';
+import { Sheet, SheetContent, SheetHeader, SheetTrigger } from './ui/sheet';
+
+
+const navItems = [
+    { href: '/', icon: Home, label: 'Dashboard' },
+    { href: '/dividas', icon: Target, label: 'Dívidas' },
+];
 
 const AppSidebar = () => {
     const { user } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
+    const [isSheetOpen, setIsSheetOpen] = React.useState(false);
 
     const handleLogout = async () => {
         if (auth) {
@@ -32,14 +40,9 @@ const AppSidebar = () => {
         }
         return name[0].toUpperCase();
     }
-    
-    const navItems = [
-        { href: '/', icon: Home, label: 'Dashboard' },
-        { href: '/dividas', icon: Target, label: 'Dívidas' },
-    ];
 
-    return (
-        <aside className="fixed inset-y-0 left-0 z-20 flex h-full w-16 flex-col border-r bg-background">
+    const DesktopSidebar = () => (
+        <aside className="fixed inset-y-0 left-0 z-20 hidden h-full w-16 flex-col border-r bg-background md:flex">
             <div className="border-b p-2">
                  <div className="w-12 h-12 mx-auto">
                     <Logo />
@@ -94,6 +97,53 @@ const AppSidebar = () => {
                 </TooltipProvider>
             </nav>
         </aside>
+    );
+
+    const MobileSidebar = () => (
+        <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 md:hidden">
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                <SheetTrigger asChild>
+                    <Button size="icon" variant="outline" className="md:hidden">
+                        <PanelLeft className="h-5 w-5" />
+                        <span className="sr-only">Toggle Menu</span>
+                    </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="sm:max-w-xs">
+                    <nav className="grid gap-6 text-lg font-medium">
+                         <div className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base">
+                            <Logo />
+                            <span className="sr-only">NeonWallet</span>
+                        </div>
+                        {navItems.map((item) => (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={`flex items-center gap-4 px-2.5 ${pathname === item.href ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                                onClick={() => setIsSheetOpen(false)}
+                            >
+                                <item.icon className="h-5 w-5" />
+                                {item.label}
+                            </Link>
+                        ))}
+                    </nav>
+                </SheetContent>
+            </Sheet>
+
+            <div className='flex items-center gap-2'>
+                <span className='font-semibold'>{user?.displayName?.split(' ')[0]}</span>
+                 <Avatar className="cursor-pointer h-9 w-9">
+                    {user?.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || 'User'} />}
+                    <AvatarFallback>{getUserInitials(user?.displayName)}</AvatarFallback>
+                </Avatar>
+            </div>
+        </header>
+    );
+
+    return (
+        <>
+            <DesktopSidebar />
+            <MobileSidebar />
+        </>
     );
 };
 

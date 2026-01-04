@@ -50,7 +50,7 @@ const DebtCard = ({ debt, onPayClick, onDeleteClick }: DebtCardProps) => {
     }
 
     return (
-        <Card className="glass-dark flex flex-col justify-between transition-all hover:-translate-y-1 hover:shadow-primary/20">
+        <Card className="glass-dark flex flex-col justify-between transition-all hover:-translate-y-1 hover:shadow-primary/20 w-full">
             <CardHeader>
                 <div className="flex items-start justify-between">
                     <CardTitle className="text-lg">{debt.name}</CardTitle>
@@ -92,7 +92,7 @@ const DebtCard = ({ debt, onPayClick, onDeleteClick }: DebtCardProps) => {
 const SummaryCard = ({ title, value, icon, loading }: { title: string, value: string, icon: React.ReactNode, loading: boolean }) => {
     if (loading) {
         return (
-            <Card className="glass-dark">
+            <Card className="glass-dark w-full">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                    <Skeleton className="h-4 w-24" />
                    <Skeleton className="h-6 w-6" />
@@ -105,7 +105,7 @@ const SummaryCard = ({ title, value, icon, loading }: { title: string, value: st
         )
     }
     return (
-        <Card className="glass-dark">
+        <Card className="glass-dark w-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{title}</CardTitle>
                 {icon}
@@ -120,7 +120,7 @@ const SummaryCard = ({ title, value, icon, loading }: { title: string, value: st
 
 
 const SkeletonCard = () => (
-    <Card className="glass-dark">
+    <Card className="glass-dark w-full">
         <CardHeader>
             <Skeleton className="h-6 w-32" />
             <Skeleton className="h-4 w-20" />
@@ -224,14 +224,14 @@ export default function DividasPage() {
         <AuthGuard>
             <div className="relative flex min-h-screen w-full flex-col bg-background">
                 <AppSidebar />
-                <main className="flex-1 pl-0 md:pl-16">
+                <main className="flex-1 w-full md:pl-16">
                     <div className="p-4 md:p-8 pt-6">
                         <div className="mb-6">
                             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Exterminador de Dívidas</h1>
                             <p className="text-muted-foreground">Monitore e elimine suas dívidas para alcançar sua liberdade financeira.</p>
                         </div>
 
-                         <div className="grid gap-4 md:grid-cols-2 mb-6">
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                             <SummaryCard 
                                 title="Total Devido"
                                 value={formatCurrency(totalDue)}

@@ -35,7 +35,7 @@ const DashboardSkeleton = () => (
                   <Skeleton className="h-8 w-20" />
                 </div>
             </div>
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
                 <Skeleton className="h-[102px] rounded-lg" />
                 <Skeleton className="h-[102px] rounded-lg" />
                 <Skeleton className="h-[102px] rounded-lg" />
@@ -195,7 +195,7 @@ export default function DashboardPage() {
         onResetData={handleResetData}
       />
       
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <SummaryCards balance={balance} income={income} expenses={expenses} prevMonthSavings={prevMonthSavings} loading={loading}/>
       </div>
       
@@ -228,7 +228,7 @@ export default function DashboardPage() {
     <AuthGuard>
       <div className="relative flex min-h-screen w-full flex-col bg-background">
         <AppSidebar />
-        <main className="flex-1 pl-0 md:pl-16">
+        <main className="flex-1 w-full md:pl-16">
           {loading ? <DashboardSkeleton /> : <MainContent />}
         </main>
         
