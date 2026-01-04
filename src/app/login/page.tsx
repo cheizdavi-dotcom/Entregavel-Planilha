@@ -111,12 +111,6 @@ export default function LoginPage() {
                 Cadastre-se
                 </Link>
             </p>
-            <p>
-                Problemas para entrar?{' '}
-                <a href="mailto:plannerfinanceiro247@gmail.com" className="underline hover:text-primary">
-                Peça ajuda
-                </a>
-            </p>
           </div>
 
         </CardContent>
