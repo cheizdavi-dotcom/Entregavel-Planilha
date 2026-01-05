@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Import, LogOut, Mail, Database, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Import, LogOut, Trash2 } from 'lucide-react';
 import { format, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from '@/hooks/use-auth';
@@ -27,8 +27,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import Link from 'next/link';
-import { DataManagerDialog } from './data-manager-dialog';
 
 
 interface HeaderProps {
@@ -63,9 +61,6 @@ const UserMenu = ({ onResetData }: { onResetData: () => void }) => {
     const { user } = useAuth();
     const router = useRouter();
     const [isAlertOpen, setIsAlertOpen] = React.useState(false);
-    const [isDataManagerOpen, setIsDataManagerOpen] = React.useState(false);
-    const supportEmail = "plannerfinanceiro247@gmail.com";
-    const emailUrl = `mailto:${supportEmail}?subject=Suporte NeonWallet - Dúvida/Bug`;
 
     const handleLogout = async () => {
         if (auth) {
@@ -108,22 +103,12 @@ const UserMenu = ({ onResetData }: { onResetData: () => void }) => {
                             </div>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => setIsDataManagerOpen(true)} className="cursor-pointer">
-                            <Database className="mr-2 h-4 w-4" />
-                            <span>Gerenciar Dados</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                            <Link href={emailUrl} target="_blank" className="cursor-pointer">
-                                <Mail className="mr-2 h-4 w-4" />
-                                <span>Suporte</span>
-                            </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setIsAlertOpen(true)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                        <DropdownMenuItem onClick={() => setIsAlertOpen(true)} className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer">
                             <Trash2 className="mr-2 h-4 w-4" />
                             <span>Resetar Dados</span>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={handleLogout}>
+                        <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                             <LogOut className="mr-2 h-4 w-4" />
                             <span>Sair</span>
                         </DropdownMenuItem>
@@ -144,7 +129,6 @@ const UserMenu = ({ onResetData }: { onResetData: () => void }) => {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-            <DataManagerDialog open={isDataManagerOpen} onOpenChange={setIsDataManagerOpen} />
         </>
     )
 }
