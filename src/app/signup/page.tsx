@@ -18,6 +18,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/icons/logo';
+import SupportWidget from '@/components/support-widget';
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -137,6 +138,7 @@ export default function SignUpPage() {
           </div>
         </CardContent>
       </Card>
+      <SupportWidget />
     </div>
   );
 }

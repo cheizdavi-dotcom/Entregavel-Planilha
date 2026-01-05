@@ -20,6 +20,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/icons/logo';
+import SupportWidget from '@/components/support-widget';
 
 
 export default function LoginPage() {
@@ -115,6 +116,7 @@ export default function LoginPage() {
 
         </CardContent>
       </Card>
+      <SupportWidget />
     </div>
   );
 }
