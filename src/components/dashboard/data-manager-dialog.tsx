@@ -1,0 +1,219 @@
+'use client';
+
+import * as React from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { Download, Upload } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+
+interface DataManagerDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function DataManagerDialog({ open, onOpenChange }: DataManagerDialogProps) {
+  const { toast } = useToast();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [pendingFile, setPendingFile] = React.useState<File | null>(null);
+  const [isImportAlertOpen, setImportAlertOpen] = React.useState(false);
+
+  const handleExport = () => {
+    try {
+      const data: { [key: string]: any } = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('transactions_') || key.startsWith('goals_') || key.startsWith('debts_'))) {
+          data[key] = JSON.parse(localStorage.getItem(key) || 'null');
+        }
+      }
+
+      if (Object.keys(data).length === 0) {
+        toast({
+          variant: 'destructive',
+          title: 'Nenhum dado para exportar',
+          description: 'Não foram encontrados dados de transações, metas ou dívidas para fazer o backup.',
+        });
+        return;
+      }
+      
+      const jsonString = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const today = new Date().toISOString().slice(0, 10);
+      link.download = `neon-wallet-backup-${today}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: 'Exportação Concluída',
+        description: 'Seu backup foi baixado com sucesso.',
+        className: 'bg-primary text-primary-foreground',
+      });
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Export Error:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro na Exportação',
+        description: 'Não foi possível gerar o arquivo de backup.',
+      });
+    }
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type === 'application/json') {
+      setPendingFile(file);
+      setImportAlertOpen(true);
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Arquivo Inválido',
+        description: 'Por favor, selecione um arquivo de backup .json válido.',
+      });
+    }
+    // Reset file input to allow selecting the same file again
+    if(event.target) {
+        event.target.value = '';
+    }
+  };
+
+  const handleImportConfirm = () => {
+    if (!pendingFile) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result;
+        if (typeof text !== 'string') {
+            throw new Error("Falha ao ler o conteúdo do arquivo.");
+        }
+        const data = JSON.parse(text);
+
+        // Clear existing app data
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('transactions_') || key.startsWith('goals_') || key.startsWith('debts_')) {
+                localStorage.removeItem(key);
+            }
+        });
+
+        // Import new data
+        for (const key in data) {
+          if (Object.prototype.hasOwnProperty.call(data, key)) {
+            localStorage.setItem(key, JSON.stringify(data[key]));
+          }
+        }
+
+        toast({
+          title: 'Importação Concluída!',
+          description: 'Seus dados foram restaurados. A página será recarregada.',
+        });
+
+        // Reload the page to reflect changes
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+
+      } catch (error) {
+        console.error("Import Error:", error);
+        toast({
+          variant: 'destructive',
+          title: 'Erro na Importação',
+          description: 'O arquivo de backup está corrompido ou em formato inválido.',
+        });
+      } finally {
+        setPendingFile(null);
+        setImportAlertOpen(false);
+      }
+    };
+
+    reader.readAsText(pendingFile);
+  };
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md glass-dark border-border/20">
+          <DialogHeader>
+            <DialogTitle>Gerenciar Dados</DialogTitle>
+            <DialogDescription>
+              Seus dados são armazenados apenas neste dispositivo. Faça backups regulares para não perdê-los.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+             <Button variant="outline" className="h-24 flex flex-col gap-2" onClick={handleExport}>
+                <Download className="h-8 w-8" />
+                <span className="text-base font-semibold">Exportar Backup</span>
+             </Button>
+             <Button variant="outline" className="h-24 flex flex-col gap-2" onClick={handleImportClick}>
+                <Upload className="h-8 w-8" />
+                <span className="text-base font-semibold">Importar Backup</span>
+             </Button>
+             <input
+                type="file"
+                ref={fileInputRef}
+                accept=".json"
+                onChange={handleFileSelected}
+                className="hidden"
+            />
+          </div>
+
+          <DialogFooter className='sm:justify-end'>
+            <DialogClose asChild>
+              <Button type="button" variant="secondary">
+                Fechar
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <AlertDialog open={isImportAlertOpen} onOpenChange={setImportAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Importação?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Atenção! Esta ação substituirá TODOS os dados atuais do aplicativo pelos dados do arquivo de backup. 
+              Esta operação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingFile(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleImportConfirm} className="bg-destructive hover:bg-destructive/90">
+              Confirmar e Substituir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}

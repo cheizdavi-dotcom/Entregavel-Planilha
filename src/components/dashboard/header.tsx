@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Import, LogOut, Mail, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Import, LogOut, Mail, Database, Trash2 } from 'lucide-react';
 import { format, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from '@/hooks/use-auth';
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import Link from 'next/link';
+import { DataManagerDialog } from './data-manager-dialog';
 
 
 interface HeaderProps {
@@ -62,6 +63,7 @@ const UserMenu = ({ onResetData }: { onResetData: () => void }) => {
     const { user } = useAuth();
     const router = useRouter();
     const [isAlertOpen, setIsAlertOpen] = React.useState(false);
+    const [isDataManagerOpen, setIsDataManagerOpen] = React.useState(false);
     const supportEmail = "plannerfinanceiro247@gmail.com";
     const emailUrl = `mailto:${supportEmail}?subject=Suporte NeonWallet - Dúvida/Bug`;
 
@@ -87,56 +89,63 @@ const UserMenu = ({ onResetData }: { onResetData: () => void }) => {
     }
 
     return (
-        <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                         <Avatar className="h-10 w-10">
-                            {user?.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || 'User'} />}
-                            <AvatarFallback>{getUserInitials(user?.displayName)}</AvatarFallback>
-                        </Avatar>
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                    <DropdownMenuLabel className="font-normal">
-                        <div className="flex flex-col space-y-1">
-                            <p className="text-sm font-medium leading-none">{user?.displayName}</p>
-                            <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
-                        </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                     <DropdownMenuItem asChild>
-                        <Link href={emailUrl} target="_blank" className="cursor-pointer">
-                            <Mail className="mr-2 h-4 w-4" />
-                            <span>Suporte</span>
-                        </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setIsAlertOpen(true)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        <span>Resetar Dados</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout}>
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <span>Sair</span>
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
+        <>
+            <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                            <Avatar className="h-10 w-10">
+                                {user?.photoURL && <AvatarImage src={user.photoURL} alt={user.displayName || 'User'} />}
+                                <AvatarFallback>{getUserInitials(user?.displayName)}</AvatarFallback>
+                            </Avatar>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56" align="end" forceMount>
+                        <DropdownMenuLabel className="font-normal">
+                            <div className="flex flex-col space-y-1">
+                                <p className="text-sm font-medium leading-none">{user?.displayName}</p>
+                                <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                            </div>
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setIsDataManagerOpen(true)} className="cursor-pointer">
+                            <Database className="mr-2 h-4 w-4" />
+                            <span>Gerenciar Dados</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                            <Link href={emailUrl} target="_blank" className="cursor-pointer">
+                                <Mail className="mr-2 h-4 w-4" />
+                                <span>Suporte</span>
+                            </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setIsAlertOpen(true)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            <span>Resetar Dados</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleLogout}>
+                            <LogOut className="mr-2 h-4 w-4" />
+                            <span>Sair</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
 
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Esta ação não pode ser desfeita. Isso apagará permanentemente todas as suas
-                    transações, metas e dívidas. Seus dados serão perdidos para sempre.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleReset} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Confirmar Reset</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Esta ação não pode ser desfeita. Isso apagará permanentemente todas as suas
+                        transações, metas e dívidas. Seus dados serão perdidos para sempre.
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleReset} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Confirmar Reset</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <DataManagerDialog open={isDataManagerOpen} onOpenChange={setIsDataManagerOpen} />
+        </>
     )
 }
 
