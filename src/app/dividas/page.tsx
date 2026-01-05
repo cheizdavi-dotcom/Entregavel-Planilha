@@ -27,7 +27,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 
@@ -79,11 +78,9 @@ const DebtCard = ({ debt, onPayClick, onDeleteClick }: DebtCardProps) => {
                 <Button onClick={() => onPayClick(debt)} className="w-full" disabled={isPaid}>
                    <Zap className="mr-2 h-4 w-4" /> Pagar Parcela
                 </Button>
-                 <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="icon" className="shrink-0" disabled={isPaid}>
-                        <Trash2 className="h-4 w-4" />
-                    </Button>
-                </AlertDialogTrigger>
+                <Button variant="destructive" size="icon" className="shrink-0" disabled={isPaid} onClick={() => onDeleteClick(debt)}>
+                    <Trash2 className="h-4 w-4" />
+                </Button>
             </CardFooter>
         </Card>
     );
@@ -153,7 +150,10 @@ export default function DividasPage() {
     const [isAddOpen, setAddOpen] = React.useState(false);
     const [isUpdateOpen, setUpdateOpen] = React.useState(false);
     const [selectedDebt, setSelectedDebt] = React.useState<Debt | null>(null);
+    const [debtToDelete, setDebtToDelete] = React.useState<Debt | null>(null);
     const [isDeleting, setIsDeleting] = React.useState(false);
+    const [isDeleteAlertOpen, setDeleteAlertOpen] = React.useState(false);
+
 
     React.useEffect(() => {
         if (!authLoading) {
@@ -205,18 +205,24 @@ export default function DividasPage() {
         setUpdateOpen(true);
     };
 
-    const handleDelete = async (debt: Debt | null) => {
-        if (!user || !debt) return;
+    const handleDeleteClick = (debt: Debt) => {
+        setDebtToDelete(debt);
+        setDeleteAlertOpen(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!user || !debtToDelete) return;
     
         setIsDeleting(true);
         try {
-            setDebts(prev => prev.filter(d => d.id !== debt.id));
+            setDebts(prev => prev.filter(d => d.id !== debtToDelete.id));
             toast({ title: 'Dívida Excluída', description: 'A dívida foi removida com sucesso.' });
         } catch (error: any) {
           toast({ variant: 'destructive', title: 'Uh oh! Algo deu errado.', description: error.message });
         } finally {
           setIsDeleting(false);
-          setSelectedDebt(null);
+          setDeleteAlertOpen(false);
+          setDebtToDelete(null);
         }
     };
 
@@ -255,31 +261,12 @@ export default function DividasPage() {
                                 </>
                             ) : sortedDebts.length > 0 ? (
                                 sortedDebts.map(debt => (
-                                    <AlertDialog key={debt.id}>
-                                        <DebtCard 
-                                            debt={debt} 
-                                            onPayClick={handlePayClick} 
-                                            onDeleteClick={() => setSelectedDebt(debt)}
-                                        />
-                                         <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                Esta ação não pode ser desfeita. Isso excluirá permanentemente o registro desta dívida.
-                                            </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                            <AlertDialogCancel disabled={isDeleting} onClick={() => setSelectedDebt(null)}>Cancelar</AlertDialogCancel>
-                                            <AlertDialogAction 
-                                                onClick={() => handleDelete(debt)} 
-                                                disabled={isDeleting}
-                                                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-                                            >
-                                                {isDeleting ? "Excluindo..." : "Confirmar Exclusão"}
-                                            </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
+                                    <DebtCard 
+                                        key={debt.id}
+                                        debt={debt} 
+                                        onPayClick={handlePayClick} 
+                                        onDeleteClick={handleDeleteClick}
+                                    />
                                 ))
                             ) : (
                                 <EmptyState onAddClick={() => setAddOpen(true)} />
@@ -292,8 +279,30 @@ export default function DividasPage() {
             <AddDebtDialog open={isAddOpen} onOpenChange={setAddOpen} onAddDebt={handleAddDebt} />
             <UpdateDebtDialog open={isUpdateOpen} onOpenChange={setUpdateOpen} debt={selectedDebt} onUpdateDebt={handleUpdateDebt} />
 
+            <AlertDialog open={isDeleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Esta ação não pode ser desfeita. Isso excluirá permanentemente o registro da dívida "{debtToDelete?.name}".
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isDeleting} onClick={() => setDebtToDelete(null)}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction 
+                        onClick={handleDeleteConfirm} 
+                        disabled={isDeleting}
+                        className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                    >
+                        {isDeleting ? "Excluindo..." : "Confirmar Exclusão"}
+                    </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+
              <Button 
-                className="fixed bottom-4 right-4 h-16 w-16 rounded-full shadow-lg shadow-primary/30 z-50 md:bottom-8 md:right-8"
+                className="fixed bottom-20 right-4 h-16 w-16 rounded-full shadow-lg shadow-primary/30 z-50 md:bottom-8 md:right-24"
                 onClick={() => setAddOpen(true)}
             >
                 <Plus className="h-8 w-8" />
@@ -301,3 +310,5 @@ export default function DividasPage() {
         </AuthGuard>
     );
 }
+
+    
