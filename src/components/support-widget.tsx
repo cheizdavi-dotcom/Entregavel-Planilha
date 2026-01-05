@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/popover';
 import { LifeBuoy, Mail, MessageSquare } from 'lucide-react';
 
-const whatsappNumber = "5511999999999"; 
+const whatsappNumber = "47996674780"; 
 const whatsappMessage = "Olá! Preciso de ajuda com o NeonWallet.";
 const supportEmail = "plannerfinanceiro247@gmail.com";
 
