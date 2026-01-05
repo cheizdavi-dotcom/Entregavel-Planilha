@@ -150,7 +150,6 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
       
       onConfirm(newTransactions);
 
-      toast({ title: 'Sucesso!', description: `${newTransactions.length} transações foram importadas.`, className: 'bg-primary text-primary-foreground' });
       handleClose();
     } catch (e: any) {
         toast({ variant: 'destructive', title: 'Erro ao importar', description: e.message });
@@ -195,7 +194,7 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="glass-dark border-border/20 w-[95%] md:w-full md:max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Importador Inteligente</DialogTitle>
+          <DialogTitle>Importador Inteligente de Extratos</DialogTitle>
           <DialogDescription>
             {step === 'paste' 
               ? 'Abra a fatura do seu cartão (ou o extrato bancário) e simplesmente copie e cole o texto das transações aqui.'

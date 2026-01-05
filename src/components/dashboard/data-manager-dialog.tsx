@@ -24,7 +24,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 
 interface DataManagerDialogProps {
   open: boolean;
@@ -161,22 +160,37 @@ export function DataManagerDialog({ open, onOpenChange }: DataManagerDialogProps
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md glass-dark border-border/20">
+        <DialogContent className="sm:max-w-xl glass-dark border-border/20">
           <DialogHeader>
             <DialogTitle>Gerenciar Dados</DialogTitle>
             <DialogDescription>
-              Seus dados são armazenados apenas neste dispositivo. Faça backups regulares para não perdê-los.
+              Seus dados são armazenados localmente no seu dispositivo. Faça backups regulares.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-             <Button variant="outline" className="h-24 flex flex-col gap-2" onClick={handleExport}>
-                <Download className="h-8 w-8" />
-                <span className="text-base font-semibold">Exportar Backup</span>
+          <div className="my-4 p-4 rounded-lg bg-muted/50 text-muted-foreground text-sm space-y-2">
+            <h4 className='font-bold text-foreground'>Como funciona:</h4>
+            <ul className='list-disc list-inside space-y-1'>
+                <li>Seus dados ficam salvos apenas neste navegador.</li>
+                <li>Clique em 'Salvar' pelo menos uma vez por semana.</li>
+                <li>Se trocar de dispositivo ou limpar o histórico, use o 'Recuperar' para trazer tudo de volta.</li>
+            </ul>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <Button variant="outline" className="h-auto flex flex-col gap-2 p-4 text-center" onClick={handleExport}>
+                <Download className="h-8 w-8 text-primary" />
+                <div className='flex flex-col items-center'>
+                    <span className="text-base font-semibold">💾 Salvar Meus Dados</span>
+                    <span className='text-xs text-muted-foreground font-normal'>Baixa um arquivo seguro para o seu computador/celular.</span>
+                </div>
              </Button>
-             <Button variant="outline" className="h-24 flex flex-col gap-2" onClick={handleImportClick}>
-                <Upload className="h-8 w-8" />
-                <span className="text-base font-semibold">Importar Backup</span>
+             <Button variant="outline" className="h-auto flex flex-col gap-2 p-4 text-center" onClick={handleImportClick}>
+                <Upload className="h-8 w-8 text-secondary" />
+                 <div className='flex flex-col items-center'>
+                    <span className="text-base font-semibold">📂 Recuperar Meus Dados</span>
+                    <span className='text-xs text-muted-foreground font-normal'>Lê um arquivo de backup salvo anteriormente.</span>
+                 </div>
              </Button>
              <input
                 type="file"
@@ -187,7 +201,7 @@ export function DataManagerDialog({ open, onOpenChange }: DataManagerDialogProps
             />
           </div>
 
-          <DialogFooter className='sm:justify-end'>
+          <DialogFooter className='sm:justify-end mt-4'>
             <DialogClose asChild>
               <Button type="button" variant="secondary">
                 Fechar

@@ -13,13 +13,59 @@ import { useRouter } from 'next/navigation';
 import { Logo } from './icons/logo';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { DataManagerDialog } from './dashboard/data-manager-dialog';
-import SupportWidget from './support-widget';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Mail, MessageSquare } from 'lucide-react';
 
+const whatsappNumber = "47996674780"; 
+const whatsappMessage = "Olá! Preciso de ajuda com o NeonWallet.";
+const supportEmail = "plannerfinanceiro247@gmail.com";
 
 const navItems = [
     { href: '/', icon: Home, label: 'Dashboard' },
     { href: '/dividas', icon: Target, label: 'Dívidas' },
 ];
+
+const SupportContent = () => {
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+    const emailUrl = `mailto:${supportEmail}?subject=Suporte NeonWallet - Dúvida/Bug`;
+    return (
+        <PopoverContent className="w-72 rounded-xl mb-2 bg-zinc-900 border-zinc-800" side="right" align="start" sideOffset={10}>
+        <div className="grid gap-4">
+          <div className="space-y-1">
+            <h4 className="font-medium leading-none text-foreground">👋 Precisa de ajuda?</h4>
+            <p className="text-sm text-muted-foreground">
+              Fale com nosso time.
+            </p>
+          </div>
+          <div className="grid gap-2">
+            <Link href={whatsappUrl} target="_blank" rel="noopener noreferrer" className='no-underline'>
+                <div className='flex items-center p-3 rounded-lg hover:bg-zinc-800 transition-colors'>
+                    <MessageSquare className="mr-3 h-6 w-6 text-green-500" />
+                    <div>
+                        <p className='font-bold text-foreground'>Atendimento via WhatsApp</p>
+                        <p className='text-xs text-muted-foreground'>Resposta rápida</p>
+                    </div>
+                </div>
+            </Link>
+              <Link href={emailUrl} target="_blank" rel="noopener noreferrer" className='no-underline'>
+                <div className='flex items-center p-3 rounded-lg hover:bg-zinc-800 transition-colors'>
+                    <Mail className="mr-3 h-6 w-6 text-muted-foreground" />
+                    <div>
+                        <p className='font-bold text-foreground'>Relatar um problema</p>
+                        <p className='text-xs text-muted-foreground'>Via e-mail</p>
+                    </div>
+                </div>
+            </Link>
+          </div>
+        </div>
+      </PopoverContent>
+    );
+};
+
 
 const AppSidebar = () => {
     const { user } = useAuth();
@@ -88,7 +134,21 @@ const AppSidebar = () => {
                             </TooltipContent>
                         </Tooltip>
                         
-                        <SupportWidget isButton={true} />
+                         <Popover>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="ghost" aria-label="Ajuda e Suporte" className="rounded-lg">
+                                            <LifeBuoy className="size-5" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                </TooltipTrigger>
+                                <TooltipContent side="right" sideOffset={5}>
+                                    Ajuda & Suporte
+                                </TooltipContent>
+                            </Tooltip>
+                            <SupportContent />
+                        </Popover>
 
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -153,7 +213,15 @@ const AppSidebar = () => {
                             <Database className="h-5 w-5" />
                             Backup & Dados
                         </button>
-                        <SupportWidget isButton={false} />
+                        
+                        <Popover>
+                            <PopoverTrigger className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground">
+                                <LifeBuoy className="h-5 w-5" />
+                                Ajuda / Suporte
+                            </PopoverTrigger>
+                            <SupportContent />
+                        </Popover>
+
                         <button 
                             onClick={handleLogout}
                             className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
@@ -164,7 +232,7 @@ const AppSidebar = () => {
                      </div>
                 </SheetContent>
             </Sheet>
-
+            <DataManagerDialog open={isDataManagerOpen} onOpenChange={setIsDataManagerOpen} />
             <div className='flex items-center gap-2'>
                 <span className='font-semibold'>{user?.displayName?.split(' ')[0]}</span>
                  <Avatar className="cursor-pointer h-9 w-9">

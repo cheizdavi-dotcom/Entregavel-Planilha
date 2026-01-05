@@ -105,7 +105,7 @@ const UserMenu = ({ onResetData }: { onResetData: () => void }) => {
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => setIsAlertOpen(true)} className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer">
                             <Trash2 className="mr-2 h-4 w-4" />
-                            <span>Resetar Dados</span>
+                            <span>Resetar Dados Locais</span>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
@@ -120,7 +120,7 @@ const UserMenu = ({ onResetData }: { onResetData: () => void }) => {
                     <AlertDialogTitle>Você tem certeza absoluta?</AlertDialogTitle>
                     <AlertDialogDescription>
                         Esta ação não pode ser desfeita. Isso apagará permanentemente todas as suas
-                        transações, metas e dívidas. Seus dados serão perdidos para sempre.
+                        transações, metas e dívidas salvas neste dispositivo. Seus dados serão perdidos.
                     </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -145,18 +145,18 @@ export default function Header({ currentDate, setCurrentDate, onImportClick, onR
                 Olá, {displayName}!
             </h1>
             <div className='md:hidden'>
-                <UserMenu onResetData={onResetData} />
+                {/* UserMenu is now part of AppSidebar for mobile */}
             </div>
         </div>
         
         <div className="flex w-full flex-col-reverse items-stretch gap-2 sm:flex-row md:w-auto md:items-center">
             <Button onClick={onImportClick} variant="outline" className="w-full sm:w-auto">
                 <Import className="mr-2 h-4 w-4" />
-                Importar
+                Importar Extrato
             </Button>
             <MonthNavigator currentDate={currentDate} setCurrentDate={setCurrentDate} />
             <div className='hidden md:block'>
-                <UserMenu onResetData={onResetData} />
+                {/* UserMenu is now part of AppSidebar for desktop */}
             </div>
         </div>
     </header>
