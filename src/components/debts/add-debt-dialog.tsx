@@ -230,7 +230,7 @@ export function AddDebtDialog({ open, onOpenChange, onAddDebt }: AddDebtDialogPr
                   )}
                 />
                 
-                <DialogFooter className='pt-4 sticky bottom-0 bg-background'>
+                <DialogFooter className='pt-4 sticky bottom-0'>
                     <DialogClose asChild>
                         <Button type="button" variant="ghost" disabled={isSubmitting}>Cancelar</Button>
                     </DialogClose>
