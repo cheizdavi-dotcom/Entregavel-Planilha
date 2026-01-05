@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { categoriesConfig, categoryKeywords } from '@/lib/categories';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Wand2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Input } from '../ui/input';
 
 interface ImportDialogProps {
@@ -89,14 +89,7 @@ function getCategoryFromDescription(description: string, type: 'income' | 'expen
 }
 
 
-const exampleText = `COMO FUNCIONA:
-Copie o texto da sua fatura ou extrato e cole no campo abaixo. O sistema tentará encontrar transações em diversos formatos.
-
-Exemplos de formatos aceitos:
-26/12/2025 -50.25 Uber
-26/12/2025 1200.00 Salário Recebido
-25/12/2025 -150.99 Supermercado Pão de Açúcar
-`;
+const exampleText = `Cole aqui o texto da sua fatura... Não precisa organizar nem formatar. Pode colar toda a bagunça que a gente arruma pra você!`;
 
 export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProps) {
   const { user } = useAuth();
@@ -194,10 +187,10 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="glass-dark border-border/20 w-[95%] md:w-full md:max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Importador Inteligente de Extratos</DialogTitle>
+          <DialogTitle>✨ Importar do Nubank/Banco</DialogTitle>
           <DialogDescription>
             {step === 'paste' 
-              ? 'Abra a fatura do seu cartão (ou o extrato bancário) e simplesmente copie e cole o texto das transações aqui.'
+              ? 'Não perca tempo digitando. Vá no site ou app do seu banco, copie a lista de compras e cole aqui.'
               : 'Revise as transações encontradas, ajuste os dados se necessário e confirme a importação.'}
           </DialogDescription>
         </DialogHeader>
@@ -296,12 +289,15 @@ export function ImportDialog({ open, onOpenChange, onConfirm }: ImportDialogProp
             </div>
           )
         )}
-
+        
+        <div className='text-xs text-muted-foreground pt-2'>
+            Dica: Funciona melhor se você copiar do site do banco no computador (Ctrl+C / Ctrl+V).
+        </div>
         <DialogFooter className="pt-4">
           <Button type="button" variant="ghost" onClick={handleClose} disabled={isProcessing}>Cancelar</Button>
           {step === 'paste' ? (
             <Button type="button" onClick={handleParseAndCategorize} disabled={isProcessing}>
-                {isProcessing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analisando...</> : <><Wand2 className="mr-2 h-4 w-4" /> Analisar Texto</>}
+                {isProcessing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Fazendo a mágica...</> : '🔮 Fazer a Mágica'}
             </Button>
           ) : (
             <>
