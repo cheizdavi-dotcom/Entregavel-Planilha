@@ -1,15 +1,25 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 
 function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((val: T) => T)) => void] {
-    const [storedValue, setStoredValue] = useState<T>(initialValue);
+    const [storedValue, setStoredValue] = useState<T>(() => {
+        // Inicializa o valor lendo do localStorage apenas uma vez, no lado do cliente.
+        if (typeof window === 'undefined' || !key) {
+            return initialValue;
+        }
+        try {
+            const item = window.localStorage.getItem(key);
+            return item ? JSON.parse(item) : initialValue;
+        } catch (error) {
+            console.error(error);
+            return initialValue;
+        }
+    });
 
-    // Efeito para carregar o valor inicial do localStorage quando a chave muda e é válida
+    // Efeito para atualizar o estado quando a chave (key) muda (ex: login/logout)
     useEffect(() => {
         if (typeof window === 'undefined' || !key) {
-            // Se não estiver no navegador ou a chave for nula/inválida, não faça nada.
-            // E reseta para o valor inicial para evitar mostrar dados de um usuário anterior.
             setStoredValue(initialValue);
             return;
         }
@@ -20,12 +30,12 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((val
             console.error(error);
             setStoredValue(initialValue);
         }
-    }, [key, initialValue]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [key]);
 
 
     const setValue = (value: T | ((val: T) => T)) => {
         if (typeof window === 'undefined' || !key) {
-            // Se a chave for inválida, não tente salvar.
             console.error("Tentativa de salvar no localStorage com chave inválida:", key);
             return;
         }
@@ -53,7 +63,8 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T | ((val
             window.addEventListener('storage', handleStorageChange);
             return () => window.removeEventListener('storage', handleStorageChange);
         }
-    }, [key, initialValue]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [key]);
 
 
     return [storedValue, setValue];
