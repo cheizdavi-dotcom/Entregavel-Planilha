@@ -145,7 +145,8 @@ const EmptyState = ({ onAddClick }: { onAddClick: () => void }) => (
 export default function DividasPage() {
     const { user, loading: authLoading } = useAuth();
     const { toast } = useToast();
-    const [debts, setDebts] = useLocalStorage<Debt[]>(`debts_${user?.uid}`, []);
+    const storageKey = user ? `debts_${user.uid}` : '';
+    const [debts, setDebts] = useLocalStorage<Debt[]>(storageKey, []);
     const [loading, setLoading] = React.useState(true);
     const [isAddOpen, setAddOpen] = React.useState(false);
     const [isUpdateOpen, setUpdateOpen] = React.useState(false);
@@ -156,10 +157,10 @@ export default function DividasPage() {
 
 
     React.useEffect(() => {
-        if (!authLoading) {
-            setLoading(false);
-        }
-    }, [authLoading]);
+        // We consider it loading if auth is loading OR if the user is logged in but the storage key isn't set yet.
+        const isLoading = authLoading || (user && !storageKey);
+        setLoading(isLoading);
+    }, [authLoading, user, storageKey]);
 
     const sortedDebts = React.useMemo(() => {
         return [...debts].sort((a, b) => {

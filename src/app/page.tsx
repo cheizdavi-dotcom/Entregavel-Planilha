@@ -56,8 +56,11 @@ export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   
-  const [allTransactions, setAllTransactions] = useLocalStorage<Transaction[]>(`transactions_${user?.uid}`, []);
-  const [goals, setGoals] = useLocalStorage<Goal[]>(`goals_${user?.uid}`, []);
+  const transactionsKey = user ? `transactions_${user.uid}` : '';
+  const goalsKey = user ? `goals_${user.uid}` : '';
+
+  const [allTransactions, setAllTransactions] = useLocalStorage<Transaction[]>(transactionsKey, []);
+  const [goals, setGoals] = useLocalStorage<Goal[]>(goalsKey, []);
   
   const [loading, setLoading] = React.useState(true);
   const [currentDate, setCurrentDate] = React.useState(new Date());
@@ -74,10 +77,10 @@ export default function DashboardPage() {
   }, [currentDate]);
 
   React.useEffect(() => {
-    if (!authLoading) {
-      setLoading(false);
-    }
-  }, [authLoading]);
+    // We are loading if auth is loading, or if the user is set but the storage keys aren't ready yet.
+    const isLoading = authLoading || (user && (!transactionsKey || !goalsKey));
+    setLoading(isLoading);
+  }, [authLoading, user, transactionsKey, goalsKey]);
 
   // --- Transaction Handlers ---
   const handleAddTransaction = (newTransaction: Omit<Transaction, 'id' | 'userId'>) => {
