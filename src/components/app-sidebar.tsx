@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/popover';
 import { Mail, MessageSquare } from 'lucide-react';
 
-const whatsappNumber = "51989760454"; 
+const whatsappNumber = "519989760454"; 
 const whatsappMessage = "Olá! Preciso de ajuda com o NeonWallet.";
 const supportEmail = "plannerfinanceiro247@gmail.com";
 
