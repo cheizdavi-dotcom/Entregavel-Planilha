@@ -11,7 +11,7 @@ import {
 import { LifeBuoy, Mail, MessageSquare } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-const whatsappNumber = "47996674780"; 
+const whatsappNumber = "51989760454"; 
 const whatsappMessage = "Olá! Preciso de ajuda com o NeonWallet.";
 const supportEmail = "plannerfinanceiro247@gmail.com";
 
