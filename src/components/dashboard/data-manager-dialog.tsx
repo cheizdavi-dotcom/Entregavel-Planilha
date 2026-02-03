@@ -178,20 +178,20 @@ export function DataManagerDialog({ open, onOpenChange }: DataManagerDialogProps
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <Button variant="outline" className="h-auto flex flex-col gap-2 p-4 text-center" onClick={handleExport}>
+             <div onClick={handleExport} className="h-auto cursor-pointer rounded-lg border bg-transparent p-4 text-center transition-colors hover:bg-accent flex flex-col items-center justify-start gap-2">
                 <Download className="h-8 w-8 text-primary" />
-                <div className='flex flex-col items-center'>
-                    <span className="text-base font-semibold">💾 Salvar Meus Dados</span>
-                    <span className='text-xs text-muted-foreground font-normal'>Baixa um arquivo seguro para o seu computador/celular.</span>
-                </div>
-             </Button>
-             <Button variant="outline" className="h-auto flex flex-col gap-2 p-4 text-center" onClick={handleImportClick}>
+                <span className="text-base font-semibold">💾 Salvar Meus Dados</span>
+                <span className="text-xs font-normal text-muted-foreground">
+                    Baixa um arquivo seguro para o seu computador/celular.
+                </span>
+             </div>
+             <div onClick={handleImportClick} className="h-auto cursor-pointer rounded-lg border bg-transparent p-4 text-center transition-colors hover:bg-accent flex flex-col items-center justify-start gap-2">
                 <Upload className="h-8 w-8 text-secondary" />
-                 <div className='flex flex-col items-center'>
-                    <span className="text-base font-semibold">📂 Recuperar Meus Dados</span>
-                    <span className='text-xs text-muted-foreground font-normal'>Lê um arquivo de backup salvo anteriormente.</span>
-                 </div>
-             </Button>
+                <span className="text-base font-semibold">📂 Recuperar Meus Dados</span>
+                <span className="text-xs font-normal text-muted-foreground">
+                    Lê um arquivo de backup salvo anteriormente.
+                </span>
+             </div>
              <input
                 type="file"
                 ref={fileInputRef}
