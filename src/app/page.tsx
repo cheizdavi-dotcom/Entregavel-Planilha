@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import AppSidebar from '@/components/app-sidebar';
 import { ImportDialog } from '@/components/importer/import-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { EditTransactionDialog } from '@/components/dashboard/edit-transaction-dialog';
 
 const DashboardSkeleton = () => (
     <div className="flex flex-col min-h-screen bg-background">
@@ -67,10 +68,12 @@ export default function DashboardPage() {
 
   // State for dialogs
   const [isAddTransactionOpen, setAddTransactionOpen] = React.useState(false);
+  const [isEditTransactionOpen, setEditTransactionOpen] = React.useState(false);
   const [isAddGoalOpen, setAddGoalOpen] = React.useState(false);
   const [isUpdateGoalOpen, setUpdateGoalOpen] = React.useState(false);
   const [isImportOpen, setImportOpen] = React.useState(false);
   const [selectedGoal, setSelectedGoal] = React.useState<Goal | null>(null);
+  const [selectedTransaction, setSelectedTransaction] = React.useState<Transaction | null>(null);
 
   const dialogInitialDate = React.useMemo(() => {
     return isSameMonth(currentDate, new Date()) ? new Date() : startOfMonth(currentDate);
@@ -93,7 +96,21 @@ export default function DashboardPage() {
     setAllTransactions(prev => [...prev, transactionToAdd]);
     toast({ title: 'Sucesso!', description: 'Sua transação foi adicionada.', className: 'bg-primary text-primary-foreground' });
   };
+  
+  const handleUpdateTransaction = (updatedTransaction: Transaction) => {
+    setAllTransactions(prev => prev.map(t => t.id === updatedTransaction.id ? updatedTransaction : t));
+    toast({ title: 'Sucesso!', description: 'Sua transação foi atualizada.', className: 'bg-primary text-primary-foreground' });
+  };
 
+  const handleDeleteTransaction = (transactionId: string) => {
+      setAllTransactions(prev => prev.filter(t => t.id !== transactionId));
+      toast({ title: 'Transação Excluída', description: 'A movimentação foi removida com sucesso.' });
+  };
+
+  const handleTransactionClick = (transaction: Transaction) => {
+      setSelectedTransaction(transaction);
+      setEditTransactionOpen(true);
+  }
 
   // --- Goal Handlers ---
   const handleAddGoal = (newGoal: Omit<Goal, 'id' | 'userId'>) => {
@@ -220,7 +237,7 @@ export default function DashboardPage() {
       </div>
       
       <div className="relative z-10">
-        <TransactionList transactions={transactions} loading={loading} />
+        <TransactionList transactions={transactions} loading={loading} onTransactionClick={handleTransactionClick} />
       </div>
       
       <div className="h-[120px]" />
@@ -240,6 +257,13 @@ export default function DashboardPage() {
             onOpenChange={setAddTransactionOpen}
             initialDate={dialogInitialDate}
             onAddTransaction={handleAddTransaction}
+        />
+        <EditTransactionDialog 
+            open={isEditTransactionOpen}
+            onOpenChange={setEditTransactionOpen}
+            transaction={selectedTransaction}
+            onUpdateTransaction={handleUpdateTransaction}
+            onDeleteTransaction={handleDeleteTransaction}
         />
         <AddGoalDialog 
             open={isAddGoalOpen} 

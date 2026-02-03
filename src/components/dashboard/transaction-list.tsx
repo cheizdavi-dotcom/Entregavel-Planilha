@@ -25,6 +25,7 @@ import { Skeleton } from '../ui/skeleton';
 interface TransactionListProps {
   transactions: Transaction[];
   loading: boolean;
+  onTransactionClick: (transaction: Transaction) => void;
 }
 
 const CategoryIcon = ({ category, className }: { category: string; className?: string }) => {
@@ -64,7 +65,7 @@ const EmptyState = () => (
 );
 
 
-export default function TransactionList({ transactions, loading }: TransactionListProps) {
+export default function TransactionList({ transactions, loading, onTransactionClick }: TransactionListProps) {
   const hasTransactions = transactions.length > 0;
   return (
     <Card className="glass-dark">
@@ -94,7 +95,7 @@ export default function TransactionList({ transactions, loading }: TransactionLi
                     </>
                 ) : hasTransactions ? (
                     transactions.map((t) => (
-                        <TableRow key={t.id}>
+                        <TableRow key={t.id} onClick={() => onTransactionClick(t)} className="cursor-pointer">
                         <TableCell className='py-4'>
                             <div className="flex items-center gap-4">
                                 <div className={`flex h-10 w-10 items-center justify-center rounded-full ${t.type === 'income' ? 'bg-primary/10' : 'bg-destructive/10'}`}>
