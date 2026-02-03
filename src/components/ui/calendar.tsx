@@ -56,7 +56,7 @@ function Calendar({
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
         day_hidden: "invisible",
         vhidden: "sr-only",
-        dropdown: "h-9 text-sm rounded-md border border-input bg-transparent px-2 ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+        dropdown: "h-9 text-sm rounded-md border border-input bg-popover-foreground text-popover px-2 ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
         dropdown_month: "capitalize",
         dropdown_year: "",
         ...classNames,
