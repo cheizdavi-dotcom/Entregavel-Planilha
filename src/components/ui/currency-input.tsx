@@ -5,58 +5,51 @@ import { Input } from '@/components/ui/input';
 import type { InputProps } from '@/components/ui/input';
 
 interface CustomProps {
-  onValueChange: (value: string) => void;
-  value: string;
+    onValueChange: (value: string) => void;
+    value: string;
 }
 
+// This component will now act as a simple text input that cleans itself up on blur.
 export const CurrencyInput = React.forwardRef<
-  HTMLInputElement, 
-  Omit<InputProps, 'onChange' | 'value'> & CustomProps
+    HTMLInputElement,
+    Omit<InputProps, 'onChange' | 'value'> & CustomProps
 >(({ onValueChange, value, ...props }, ref) => {
-  // This function formats a raw string of digits into a BRL currency string for display
-  const formatForDisplay = (val: string | undefined): string => {
-    if (!val) return '';
-    // 1. Keep only digits from the value provided by react-hook-form (which might be "1234,56")
-    const digitsOnly = val.replace(/\D/g, '');
-    if (digitsOnly === '') return '';
 
-    // 2. Convert to a number (as cents) and then to a float
-    const numberValue = parseFloat(digitsOnly) / 100;
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        // Allow user to type numbers, comma, and dot
+        const sanitizedValue = e.target.value.replace(/[^0-9,.]/g, '');
+        onValueChange(sanitizedValue);
+    };
 
-    // 3. Format as BRL currency string (e.g., "1.234,56")
-    return new Intl.NumberFormat('pt-BR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(numberValue);
-  };
-  
-  // The value prop comes from react-hook-form (e.g., "1234,56")
-  // We format it for display (e.g., "1.234,56")
-  const displayValue = formatForDisplay(value);
+    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+        let val = e.target.value;
+        if (!val) {
+            onValueChange('');
+            return;
+        }
+        // Standardize to dot for parsing
+        val = val.replace(',', '.');
+        const numberValue = parseFloat(val);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // When the user types, we get the raw value (e.g., "1.234,5a6")
-    const rawValue = e.target.value;
-    // We keep only the digits
-    const digitsOnly = rawValue.replace(/\D/g, '');
+        if (!isNaN(numberValue)) {
+            // Format to 2 decimal places and use comma for RHF state
+            onValueChange(numberValue.toFixed(2).replace('.', ','));
+        } else {
+            onValueChange(''); // Clear if invalid
+        }
+    };
 
-    // We create the value that will be stored in the form state (e.g., "1234,56")
-    // This format is compatible with the existing zod schema and submission logic
-    const formValue = (parseFloat(digitsOnly || '0') / 100).toFixed(2).replace('.', ',');
-    
-    // We call react-hook-form's onChange to update the form state
-    onValueChange(formValue);
-  };
-
-  return (
-    <Input
-      {...props}
-      ref={ref}
-      value={displayValue}
-      onChange={handleChange}
-      type="text"
-      inputMode="decimal"
-    />
-  );
+    return (
+        <Input
+            {...props}
+            ref={ref}
+            value={value || ''}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            placeholder="0,00"
+            type="text"
+            inputMode="decimal"
+        />
+    );
 });
 CurrencyInput.displayName = 'CurrencyInput';

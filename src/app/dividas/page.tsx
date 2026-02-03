@@ -64,11 +64,14 @@ const DebtCard = ({ debt, onPayClick, onEditClick, onDeleteClick }: DebtCardProp
             </CardHeader>
             <CardContent className="space-y-4">
                 <Progress value={percentage} className="h-3" indicatorClassName={isPaid ? "bg-primary" : "bg-destructive"}/>
-                <div className="text-sm text-muted-foreground">
+                <div className="space-y-1 text-sm text-muted-foreground">
                     {isPaid ? (
                         <p className="font-semibold text-primary">Parabéns! Dívida quitada.</p>
                     ) : (
-                        <p>Liberdade em: <span className="font-bold text-foreground font-inter capitalize">{freedomDate}</span></p>
+                        <>
+                            <p>Liberdade em: <span className="font-bold text-foreground font-inter capitalize">{freedomDate}</span></p>
+                            {debt.dueDate && <p>Vencimento mensal: <span className="font-bold text-foreground font-inter">dia {debt.dueDate}</span></p>}
+                        </>
                     )}
                 </div>
                  <div className="flex justify-between items-center text-xs text-muted-foreground font-inter font-bold">
