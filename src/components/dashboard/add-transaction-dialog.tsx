@@ -40,11 +40,12 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CurrencyInput } from '../ui/currency-input';
 
 const formSchema = z.object({
   type: z.enum(['income', 'expense'], { required_error: 'Selecione o tipo.' }),
   amount: z.string()
-    .refine(val => /^\d+([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido. Use apenas números e vírgula/ponto para centavos.' })
+    .refine(val => /^\d*([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido. Use apenas números e vírgula/ponto para centavos.' })
     .refine(val => parseFloat(val.replace(',', '.')) > 0, { message: 'O valor deve ser maior que zero.' }),
   description: z.string().min(2, { message: 'Descrição muito curta.' }).max(50),
   category: z.string({ required_error: 'Selecione uma categoria.' }).min(1, 'Selecione uma categoria.'),
@@ -173,20 +174,26 @@ export function AddTransactionDialog({ open, onOpenChange, initialDate, onAddTra
 
                 <div className="grid grid-cols-2 gap-4">
                     <FormField
-                    control={form.control}
-                    name="amount"
-                    render={({ field }) => (
+                      control={form.control}
+                      name="amount"
+                      render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Valor</FormLabel>
-                        <FormControl>
+                          <FormLabel>Valor</FormLabel>
+                          <FormControl>
                             <div className="relative">
-                                <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground font-inter font-bold">R$</span>
-                                <Input type="text" placeholder="0,00" {...field} className="pl-10 font-inter font-bold" disabled={isSubmitting}/>
+                              <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground font-inter font-bold">R$</span>
+                              <CurrencyInput 
+                                placeholder="0,00" 
+                                className="pl-10 font-inter font-bold text-right" 
+                                disabled={isSubmitting}
+                                value={field.value}
+                                onValueChange={field.onChange}
+                              />
                             </div>
-                        </FormControl>
-                        <FormMessage />
+                          </FormControl>
+                          <FormMessage />
                         </FormItem>
-                    )}
+                      )}
                     />
                     <FormField
                         control={form.control}

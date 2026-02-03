@@ -25,14 +25,15 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '../ui/currency-input';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'O nome da meta é muito curto.' }).max(50),
   totalValue: z.string()
-    .refine(val => /^\d+([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido. Use apenas números e vírgula/ponto para centavos.' })
+    .refine(val => /^\d*([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido. Use apenas números e vírgula/ponto para centavos.' })
     .refine(val => parseFloat(val.replace(',', '.')) > 0, { message: 'O valor total deve ser maior que zero.' }),
   currentValue: z.string()
-    .refine(val => /^\d+([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido. Use apenas números e vírgula/ponto para centavos.' })
+    .refine(val => /^\d*([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido. Use apenas números e vírgula/ponto para centavos.' })
     .refine(val => parseFloat(val.replace(',', '.')) >= 0, { message: 'O valor atual não pode ser negativo.' }),
 });
 
@@ -126,7 +127,7 @@ export function AddGoalDialog({ open, onOpenChange, onAddGoal }: AddGoalDialogPr
                   <FormControl>
                     <div className="relative">
                       <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground">R$</span>
-                      <Input type="text" placeholder="5.000,00" {...field} className="pl-10" disabled={isSubmitting}/>
+                      <CurrencyInput placeholder="5.000,00" className="pl-10 text-right" disabled={isSubmitting} value={field.value} onValueChange={field.onChange} />
                     </div>
                   </FormControl>
                   <FormMessage />
@@ -143,7 +144,7 @@ export function AddGoalDialog({ open, onOpenChange, onAddGoal }: AddGoalDialogPr
                   <FormControl>
                      <div className="relative">
                       <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground">R$</span>
-                      <Input type="text" placeholder="0,00" {...field} className="pl-10" disabled={isSubmitting}/>
+                      <CurrencyInput placeholder="0,00" className="pl-10 text-right" disabled={isSubmitting} value={field.value} onValueChange={field.onChange} />
                     </div>
                   </FormControl>
                   <FormMessage />

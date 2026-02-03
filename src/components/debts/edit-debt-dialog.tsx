@@ -27,23 +27,27 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CurrencyInput } from '../ui/currency-input';
 
 const debtCategories = ["Cartão de Crédito", "Empréstimo Pessoal", "Financiamento", "Outras"];
 
 const formSchema = z.object({
   name: z.string().min(2, 'Nome muito curto.').max(50),
   totalAmount: z.string()
-    .refine(val => /^\d+([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido.' })
+    .refine(val => /^\d*([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido.' })
     .refine(val => parseFloat(val.replace(',', '.')) > 0, { message: 'Valor deve ser maior que zero.' }),
   currentBalance: z.string()
-    .refine(val => /^\d+([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido.' })
+    .refine(val => /^\d*([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido.' })
     .refine(val => parseFloat(val.replace(',', '.')) >= 0, { message: 'Valor não pode ser negativo.' }),
   monthlyPayment: z.string()
-    .refine(val => /^\d+([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido.' })
+    .refine(val => /^\d*([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido.' })
     .refine(val => parseFloat(val.replace(',', '.')) > 0, { message: 'A parcela deve ser maior que zero.' }),
   dueDate: z.string().min(1, 'Selecione o dia do vencimento.'),
   category: z.string().min(1, 'Selecione uma categoria.'),
-}).refine(data => parseFloat(data.currentBalance.replace(',', '.')) <= parseFloat(data.totalAmount.replace(',', '.')), {
+}).refine(data => {
+    if (!data.totalAmount || !data.currentBalance) return true;
+    return parseFloat(data.currentBalance.replace(',', '.')) <= parseFloat(data.totalAmount.replace(',', '.'))
+}, {
     message: "O saldo atual não pode ser maior que o valor total.",
     path: ["currentBalance"],
 });
@@ -147,7 +151,7 @@ export function EditDebtDialog({ open, onOpenChange, debt, onUpdateDebt }: EditD
                           <FormControl>
                               <div className="relative">
                               <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground font-inter">R$</span>
-                              <Input type="text" placeholder="1.000,00" {...field} className="pl-10 font-inter font-bold" disabled={isSubmitting}/>
+                              <CurrencyInput placeholder="1.000,00" className="pl-10 font-inter font-bold text-right" disabled={isSubmitting} value={field.value} onValueChange={field.onChange}/>
                               </div>
                           </FormControl>
                           <FormMessage />
@@ -163,7 +167,7 @@ export function EditDebtDialog({ open, onOpenChange, debt, onUpdateDebt }: EditD
                           <FormControl>
                               <div className="relative">
                               <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground font-inter">R$</span>
-                              <Input type="text" placeholder="800,00" {...field} className="pl-10 font-inter font-bold" disabled={isSubmitting}/>
+                              <CurrencyInput placeholder="800,00" className="pl-10 font-inter font-bold text-right" disabled={isSubmitting} value={field.value} onValueChange={field.onChange}/>
                               </div>
                           </FormControl>
                           <FormMessage />
@@ -181,7 +185,7 @@ export function EditDebtDialog({ open, onOpenChange, debt, onUpdateDebt }: EditD
                           <FormControl>
                               <div className="relative">
                               <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground font-inter">R$</span>
-                              <Input type="text" placeholder="100,00" {...field} className="pl-10 font-inter font-bold" disabled={isSubmitting}/>
+                              <CurrencyInput placeholder="100,00" className="pl-10 font-inter font-bold text-right" disabled={isSubmitting} value={field.value} onValueChange={field.onChange}/>
                               </div>
                           </FormControl>
                           <FormMessage />

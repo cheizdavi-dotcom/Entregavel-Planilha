@@ -38,10 +38,11 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '../ui/currency-input';
 
 const formSchema = z.object({
   currentValue: z.string()
-    .refine(val => /^\d+([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido. Use números e, se precisar, vírgula ou ponto para centavos.' })
+    .refine(val => val && /^\d*([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido. Use números e, se precisar, vírgula ou ponto para centavos.' })
     .refine(val => parseFloat(val.replace(',', '.')) >= 0, { message: 'O valor não pode ser negativo.' }),
 });
 
@@ -145,7 +146,7 @@ export function UpdateGoalDialog({ open, onOpenChange, goal, onUpdateGoal, onDel
                   <FormControl>
                     <div className="relative">
                       <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground">R$</span>
-                      <Input type="text" placeholder="100,00" {...field} className="pl-10 text-2xl h-14" disabled={isSubmitting}/>
+                      <CurrencyInput placeholder="100,00" className="pl-10 text-2xl h-14 text-right" disabled={isSubmitting} value={field.value} onValueChange={field.onChange} />
                     </div>
                   </FormControl>
                   <FormMessage />

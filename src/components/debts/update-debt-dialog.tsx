@@ -26,11 +26,12 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '../ui/currency-input';
 
 const formSchema = z.object({
   paymentValue: z.string()
     .refine(val => val && parseFloat(val.replace(',', '.')) > 0, { message: 'O valor do pagamento deve ser positivo.' })
-    .refine(val => /^\d+([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido.' }),
+    .refine(val => /^\d*([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido.' }),
 });
 
 interface UpdateDebtDialogProps {
@@ -114,7 +115,7 @@ export function UpdateDebtDialog({ open, onOpenChange, debt, onUpdateDebt }: Upd
                   <FormControl>
                     <div className="relative">
                       <span className="absolute inset-y-0 left-3 flex items-center text-muted-foreground">R$</span>
-                      <Input type="text" placeholder="100,00" {...field} className="pl-10 text-2xl h-14 font-inter font-bold" disabled={isSubmitting}/>
+                      <CurrencyInput placeholder="100,00" className="pl-10 text-2xl h-14 font-inter font-bold text-right" disabled={isSubmitting} value={field.value} onValueChange={field.onChange} />
                     </div>
                   </FormControl>
                   <FormMessage />
