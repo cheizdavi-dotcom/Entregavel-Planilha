@@ -44,10 +44,14 @@ const DebtCard = ({ debt, onPayClick, onEditClick, onDeleteClick }: DebtCardProp
     const isPaid = debt.currentBalance <= 0;
     
     let freedomDate = 'N/A';
-    if (!isPaid && debt.monthlyPayment > 0) {
-        const monthsRemaining = Math.ceil(debt.currentBalance / debt.monthlyPayment);
-        const futureDate = addMonths(new Date(), monthsRemaining);
-        freedomDate = format(futureDate, "MMMM 'de' yyyy", { locale: ptBR });
+    if (!isPaid) {
+        if (debt.endDate) { // Prioritize the user-provided end date
+            freedomDate = format(new Date(debt.endDate), "MMMM 'de' yyyy", { locale: ptBR });
+        } else if (debt.monthlyPayment > 0) {
+            const monthsRemaining = Math.ceil(debt.currentBalance / debt.monthlyPayment);
+            const futureDate = addMonths(new Date(), monthsRemaining);
+            freedomDate = format(futureDate, "MMMM 'de' yyyy", { locale: ptBR });
+        }
     }
 
     return (

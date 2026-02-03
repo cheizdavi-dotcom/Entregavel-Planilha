@@ -39,6 +39,7 @@
         "currentBalance": { "type": "number" },
         "monthlyPayment": { "type": "number" },
         "dueDate": { "type": "number" },
+        "endDate": { "type": "string", "format": "date-time" },
         "category": { "type": "string" }
       },
       "required": ["userId", "name", "totalAmount", "currentBalance", "monthlyPayment"]

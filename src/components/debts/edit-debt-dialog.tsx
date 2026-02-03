@@ -6,6 +6,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import type { Debt } from '@/types';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -28,21 +32,22 @@ import {
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CurrencyInput } from '../ui/currency-input';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+
 
 const debtCategories = ["Cartão de Crédito", "Empréstimo Pessoal", "Financiamento", "Outras"];
 
 const formSchema = z.object({
   name: z.string().min(2, 'Nome muito curto.').max(50),
   totalAmount: z.string()
-    .refine(val => /^\d*([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido.' })
-    .refine(val => parseFloat(val.replace(',', '.')) > 0, { message: 'Valor deve ser maior que zero.' }),
+    .refine(val => val && parseFloat(val.replace(',', '.')) > 0, { message: 'Valor deve ser maior que zero.' }),
   currentBalance: z.string()
-    .refine(val => /^\d*([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido.' })
-    .refine(val => parseFloat(val.replace(',', '.')) >= 0, { message: 'Valor não pode ser negativo.' }),
+    .refine(val => val && parseFloat(val.replace(',', '.')) >= 0, { message: 'Valor não pode ser negativo.' }),
   monthlyPayment: z.string()
-    .refine(val => /^\d*([,.]\d{1,2})?$/.test(val), { message: 'Valor inválido.' })
-    .refine(val => parseFloat(val.replace(',', '.')) > 0, { message: 'A parcela deve ser maior que zero.' }),
+    .refine(val => val && parseFloat(val.replace(',', '.')) > 0, { message: 'A parcela deve ser maior que zero.' }),
   dueDate: z.string().min(1, 'Selecione o dia do vencimento.'),
+  endDate: z.date().optional(),
   category: z.string().min(1, 'Selecione uma categoria.'),
 }).refine(data => {
     if (!data.totalAmount || !data.currentBalance) return true;
@@ -72,6 +77,7 @@ export function EditDebtDialog({ open, onOpenChange, debt, onUpdateDebt }: EditD
       monthlyPayment: '',
       category: '',
       dueDate: '',
+      endDate: undefined,
     },
   });
 
@@ -84,6 +90,7 @@ export function EditDebtDialog({ open, onOpenChange, debt, onUpdateDebt }: EditD
         monthlyPayment: String(debt.monthlyPayment).replace('.', ','),
         category: debt.category,
         dueDate: String(debt.dueDate),
+        endDate: debt.endDate ? new Date(debt.endDate) : undefined,
       });
     }
   }, [debt, open, form]);
@@ -104,6 +111,7 @@ export function EditDebtDialog({ open, onOpenChange, debt, onUpdateDebt }: EditD
         currentBalance,
         monthlyPayment,
         dueDate: parseInt(values.dueDate),
+        endDate: values.endDate?.toISOString(),
         category: values.category,
       });
 
@@ -235,6 +243,50 @@ export function EditDebtDialog({ open, onOpenChange, debt, onUpdateDebt }: EditD
                             </Select>
                           <FormMessage />
                       </FormItem>
+                  )}
+                />
+                 <FormField
+                  control={form.control}
+                  name="endDate"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Data de Quitação (Opcional)</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                              disabled={isSubmitting}
+                            >
+                              {field.value ? (
+                                format(field.value, "MMMM 'de' yyyy", { locale: ptBR })
+                              ) : (
+                                <span>Escolha o mês e ano</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            captionLayout="dropdown-buttons"
+                            fromYear={new Date().getFullYear() - 5}
+                            toYear={new Date().getFullYear() + 25}
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                            locale={ptBR}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
                   )}
                 />
                 

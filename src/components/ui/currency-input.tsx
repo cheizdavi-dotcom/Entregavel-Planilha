@@ -9,43 +9,42 @@ interface CustomProps {
     value: string;
 }
 
-// This component will now act as a simple text input that cleans itself up on blur.
 export const CurrencyInput = React.forwardRef<
     HTMLInputElement,
     Omit<InputProps, 'onChange' | 'value'> & CustomProps
 >(({ onValueChange, value, ...props }, ref) => {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        // Allow user to type numbers, comma, and dot
-        const sanitizedValue = e.target.value.replace(/[^0-9,.]/g, '');
-        onValueChange(sanitizedValue);
-    };
-
-    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-        let val = e.target.value;
-        if (!val) {
+        let inputValue = e.target.value;
+        const digitsOnly = inputValue.replace(/\D/g, '');
+        
+        if (!digitsOnly) {
             onValueChange('');
             return;
         }
-        // Standardize to dot for parsing
-        val = val.replace(',', '.');
-        const numberValue = parseFloat(val);
+        
+        const numericString = (parseFloat(digitsOnly) / 100).toFixed(2);
+        onValueChange(numericString.replace('.', ','));
+    };
 
-        if (!isNaN(numberValue)) {
-            // Format to 2 decimal places and use comma for RHF state
-            onValueChange(numberValue.toFixed(2).replace('.', ','));
-        } else {
-            onValueChange(''); // Clear if invalid
-        }
+    const formatForDisplay = (val: string): string => {
+        if (!val) return '';
+        
+        const numberValue = parseFloat(val.replace(',', '.'));
+        if (isNaN(numberValue)) return '';
+        
+        return new Intl.NumberFormat('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(numberValue);
     };
 
     return (
         <Input
             {...props}
             ref={ref}
-            value={value || ''}
+            value={formatForDisplay(value) || ''}
             onChange={handleChange}
-            onBlur={handleBlur}
             placeholder="0,00"
             type="text"
             inputMode="decimal"

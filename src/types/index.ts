@@ -32,6 +32,7 @@ export type Debt = {
     currentBalance: number;
     monthlyPayment: number;
     dueDate: number; // Day of the month (1-31)
+    endDate?: string; // ISO String for the end date
     category: string;
 };
 
