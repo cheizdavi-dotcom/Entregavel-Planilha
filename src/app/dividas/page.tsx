@@ -10,7 +10,7 @@ import { ptBR } from 'date-fns/locale';
 
 import AuthGuard from '@/components/auth-guard';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, Zap, Calendar, DollarSign } from 'lucide-react';
+import { Plus, Trash2, Zap, Calendar, DollarSign, Pencil } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { formatCurrency } from '@/lib/utils';
@@ -29,14 +29,16 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
+import { EditDebtDialog } from '@/components/debts/edit-debt-dialog';
 
 interface DebtCardProps {
     debt: Debt;
     onPayClick: (debt: Debt) => void;
+    onEditClick: (debt: Debt) => void;
     onDeleteClick: (debt: Debt) => void;
 }
 
-const DebtCard = ({ debt, onPayClick, onDeleteClick }: DebtCardProps) => {
+const DebtCard = ({ debt, onPayClick, onEditClick, onDeleteClick }: DebtCardProps) => {
     const paidValue = debt.totalAmount - debt.currentBalance;
     const percentage = debt.totalAmount > 0 ? (paidValue / debt.totalAmount) * 100 : 0;
     const isPaid = debt.currentBalance <= 0;
@@ -75,8 +77,11 @@ const DebtCard = ({ debt, onPayClick, onDeleteClick }: DebtCardProps) => {
                 </div>
             </CardContent>
             <CardFooter className="pt-4 flex gap-2">
-                <Button onClick={() => onPayClick(debt)} className="w-full" disabled={isPaid}>
+                <Button onClick={() => onPayClick(debt)} className="flex-grow" disabled={isPaid}>
                    <Zap className="mr-2 h-4 w-4" /> Pagar Parcela
+                </Button>
+                <Button variant="outline" size="icon" className="shrink-0" disabled={isPaid} onClick={() => onEditClick(debt)}>
+                    <Pencil className="h-4 w-4" />
                 </Button>
                 <Button variant="destructive" size="icon" className="shrink-0" disabled={isPaid} onClick={() => onDeleteClick(debt)}>
                     <Trash2 className="h-4 w-4" />
@@ -150,6 +155,7 @@ export default function DividasPage() {
     const [loading, setLoading] = React.useState(true);
     const [isAddOpen, setAddOpen] = React.useState(false);
     const [isUpdateOpen, setUpdateOpen] = React.useState(false);
+    const [isEditOpen, setEditOpen] = React.useState(false);
     const [selectedDebt, setSelectedDebt] = React.useState<Debt | null>(null);
     const [debtToDelete, setDebtToDelete] = React.useState<Debt | null>(null);
     const [isDeleting, setIsDeleting] = React.useState(false);
@@ -204,6 +210,11 @@ export default function DividasPage() {
     const handlePayClick = (debt: Debt) => {
         setSelectedDebt(debt);
         setUpdateOpen(true);
+    };
+
+    const handleEditClick = (debt: Debt) => {
+        setSelectedDebt(debt);
+        setEditOpen(true);
     };
 
     const handleDeleteClick = (debt: Debt) => {
@@ -265,7 +276,8 @@ export default function DividasPage() {
                                     <DebtCard 
                                         key={debt.id}
                                         debt={debt} 
-                                        onPayClick={handlePayClick} 
+                                        onPayClick={handlePayClick}
+                                        onEditClick={handleEditClick} 
                                         onDeleteClick={handleDeleteClick}
                                     />
                                 ))
@@ -279,6 +291,7 @@ export default function DividasPage() {
             
             <AddDebtDialog open={isAddOpen} onOpenChange={setAddOpen} onAddDebt={handleAddDebt} />
             <UpdateDebtDialog open={isUpdateOpen} onOpenChange={setUpdateOpen} debt={selectedDebt} onUpdateDebt={handleUpdateDebt} />
+            <EditDebtDialog open={isEditOpen} onOpenChange={setEditOpen} debt={selectedDebt} onUpdateDebt={handleUpdateDebt} />
 
             <AlertDialog open={isDeleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
                 <AlertDialogContent>
@@ -311,5 +324,3 @@ export default function DividasPage() {
         </AuthGuard>
     );
 }
-
-    
